@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -194,7 +195,7 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
 @keyframes swipeHint{0%,100%{opacity:.4;transform:translateX(-50%) translateY(0)}50%{opacity:.7;transform:translateX(-50%) translateY(-8px)}}
 
 .d-phase-title{font-family:'ZCOOL KuaiLe',cursive;font-size:clamp(22px,6vw,36px);color:#fff;text-shadow:0 3px 15px rgba(0,0,0,0.15);opacity:0;letter-spacing:3px;margin-bottom:12px}
-.d-phase-img{max-width:85%;max-height:60vh;border-radius:12px;opacity:0;box-shadow:0 8px 32px rgba(0,0,0,0.2);object-fit:contain}
+.d-phase-img{max-width:85%;max-height:60vh;border-radius:16px;opacity:0;box-shadow:0 8px 40px rgba(0,0,0,0.25);object-fit:contain;transition:transform .3s ease}
 .d-phase-text{font-size:clamp(16px,4vw,22px);color:rgba(255,255,255,0.95);line-height:1.8;max-width:500px;opacity:0;margin-top:16px;text-shadow:0 2px 10px rgba(0,0,0,0.15)}
 
 .display-replay{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);z-index:10;pointer-events:auto;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.25);color:#fff;padding:10px 28px;border-radius:24px;font-size:14px;font-family:inherit;cursor:pointer;transition:all .25s;opacity:0;display:none}
@@ -212,6 +213,10 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
 @keyframes popIn{0%{opacity:0;transform:scale(0.3)}70%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
 @keyframes slideInUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
 @keyframes textGlow{0%,100%{text-shadow:0 0 30px rgba(255,255,255,0.4),0 4px 20px rgba(0,0,0,0.15)}50%{text-shadow:0 0 60px rgba(255,255,255,0.6),0 4px 20px rgba(0,0,0,0.15)}}
+@keyframes imgReveal{0%{opacity:0;transform:scale(0.7) translateY(30px)}60%{opacity:1;transform:scale(1.03) translateY(-5px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+.d-phase-img{max-width:85%;max-height:60vh;border-radius:16px;opacity:0;box-shadow:0 8px 40px rgba(0,0,0,0.25);object-fit:contain;transition:transform .3s ease}
+.d-phase-img:hover{transform:scale(1.03)}
+.d-img-placeholder{width:160px;height:160px;border-radius:16px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;margin:20px auto;font-size:64px;opacity:0.4}
 
 @media(min-width:600px){.app{padding:40px 20px 60px}.card{padding:36px 32px}}
 @media(max-width:360px){.header h1{font-size:22px}.card{padding:20px 16px}.theme-dot{width:32px;height:32px}}
@@ -398,6 +403,8 @@ let recSetIdx=0;
 
 let currentTheme=0,selectedMonth=1,selectedDay=1,pickerMonth=1,pickerDay=1;
 let uploadedImages=[];
+let thumbnailData=[];
+let shareTexts=[];
 
 const BLESSINGS=[
   '生日快乐！愿你每一天都充满阳光和笑容！',
@@ -564,6 +571,19 @@ function resizeImage(dataUrl,maxW,maxH,cb){
   };
   img.src=dataUrl;
 }
+function createThumbnail(src,maxDim,quality,cb){
+  const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{
+    let w=img.width,h=img.height;
+    if(w>h){h*=maxDim/w;w=maxDim}else{w*=maxDim/h;h=maxDim}
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    const full=c.toDataURL('image/jpeg',quality);
+    cb(full.split(',')[1]);
+  };
+  img.onerror=()=>{cb('')};
+  img.src=src;
+}
 
 imgUploadZone.addEventListener('click',()=>imgFileInput.click());
 imgFileInput.addEventListener('change',e=>{handleFiles(e.target.files);imgFileInput.value=''});
@@ -708,7 +728,18 @@ $('useDefaultText').addEventListener('change',function(){
 
 function buildShareURL(){
   const n=encodeURIComponent(nameInput.value.trim()),s=encodeURIComponent(senderInput.value.trim()),b=encodeURIComponent(blessingInput.value.trim());
-  return `${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
+  let url=`${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
+  if(thumbnailData.length>0){
+    const payload=thumbnailData.join('|');
+    const compressed=typeof LZString!=='undefined'?LZString.compressToEncodedURIComponent(payload):encodeURIComponent(payload);
+    url+=`&img=${compressed}`;
+  }
+  if(shareTexts.length>0){
+    const payload=JSON.stringify(shareTexts);
+    const compressed=typeof LZString!=='undefined'?LZString.compressToEncodedURIComponent(payload):encodeURIComponent(payload);
+    url+=`&txt=${compressed}`;
+  }
+  return url;
 }
 
 function generateCard(){
@@ -731,109 +762,106 @@ function generateCard(){
     const el9=$('blessing9');
     texts.push(el9&&el9.value.trim()?el9.value.trim():'友谊长存！');
   }
+  shareTexts=texts;
 
-  const canvas=cardCanvas,ctx=canvas.getContext('2d');
-  const W=600;
-  const imgCount=uploadedImages.length;
-  const imgH=400;
-  const textH=60;
-  const headerH=160;
-  const footerH=200;
-  const H=headerH+imgCount*(imgH+textH)+footerH;
-  canvas.width=W;canvas.height=H;
+  // Generate thumbnails for URL sharing
+  thumbnailData=[];
+  let thumbsReady=0;
+  const totalThumbs=uploadedImages.length;
 
-  // Background gradient
-  const bg=ctx.createLinearGradient(0,0,W*0.5,H);
-  bg.addColorStop(0,t.cg[0]+'dd');bg.addColorStop(0.5,t.cg[1]+'cc');bg.addColorStop(1,t.cg[2]+'ee');
-  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  function proceedWithCanvas(){
+    const canvas=cardCanvas,ctx=canvas.getContext('2d');
+    const W=600;
+    const imgCount=uploadedImages.length;
+    const imgH=400;
+    const textH=60;
+    const headerH=160;
+    const footerH=200;
+    const H=headerH+imgCount*(imgH+textH)+footerH;
+    canvas.width=W;canvas.height=H;
 
-  // Decorative circles
-  for(let i=0;i<20;i++){ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,Math.random()*40+8,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.1+0.03})`;ctx.fill()}
-  // Stars
-  for(let i=0;i<30;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.4+0.2})`;drawStar(ctx,Math.random()*W,Math.random()*headerH,Math.random()*3+1)}
+    // Background gradient
+    const bg=ctx.createLinearGradient(0,0,W*0.5,H);
+    bg.addColorStop(0,t.cg[0]+'dd');bg.addColorStop(0.5,t.cg[1]+'cc');bg.addColorStop(1,t.cg[2]+'ee');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
 
-  // Header lines
-  ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(40,50);ctx.lineTo(W-40,50);ctx.stroke();
+    // Decorative circles
+    for(let i=0;i<20;i++){ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,Math.random()*40+8,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.1+0.03})`;ctx.fill()}
+    // Stars
+    for(let i=0;i<30;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.4+0.2})`;drawStar(ctx,Math.random()*W,Math.random()*headerH,Math.random()*3+1)}
 
-  // Header text
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font='40px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';
-  ctx.shadowColor='rgba(0,0,0,0.12)';ctx.shadowBlur=12;ctx.shadowOffsetY=4;
-  ctx.fillText('🎂 生日快乐！',W/2,95);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-  ctx.font='28px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';ctx.fillText(`致：${name}`,W/2,140);
-
-  // Draw images and texts
-  let y=headerH;
-  const imgPadding=40;
-  const imgDrawW=W-imgPadding*2;
-
-  let imagesLoaded=0;
-  const totalImages=imgCount;
-  const imgEls=[];
-
-  function drawAfterImagesLoad(){
-    for(let i=0;i<imgCount;i++){
-      // Text above image
-      if(texts[i]){
-        ctx.font='22px "ZCOOL KuaiLe",cursive';ctx.fillStyle='rgba(255,255,255,0.95)';
-        ctx.shadowColor='rgba(0,0,0,0.1)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;
-        ctx.fillText(texts[i],W/2,y+30);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-      }
-
-      // Image
-      const img=imgEls[i];
-      if(img){
-        ctx.save();
-        roundRect(ctx,imgPadding,y+50,imgDrawW,imgH-80,12);ctx.clip();
-        const scale=Math.max(imgDrawW/img.width,(imgH-80)/img.height);
-        const dw=img.width*scale,dh=img.height*scale;
-        ctx.drawImage(img,imgPadding+(imgDrawW-dw)/2,y+50+(imgH-80-dh)/2,dw,dh);
-        ctx.restore();
-        // Image border
-        ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;
-        roundRect(ctx,imgPadding,y+50,imgDrawW,imgH-80,12);ctx.stroke();
-      }
-      y+=imgH+textH;
-    }
-
-    // Footer text (last blessing)
-    if(texts[imgCount]){
-      ctx.font='20px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.9)';
-      ctx.fillText(texts[imgCount],W/2,y+20);
-    }
-
-    // Sender
-    ctx.font='16px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.65)';
-    ctx.fillText(`—— 来自 ${sender} 的祝福`,W/2,y+55);
-
-    // Bottom line
+    // Header lines
     ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(40,y+80);ctx.lineTo(W-40,y+80);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(40,50);ctx.lineTo(W-40,50);ctx.stroke();
 
-    // QR Code
-    const shareURL=buildShareURL();
-    drawQRCodeOnCanvas(ctx,shareURL,W,H,t,y+90);
+    // Header text
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='40px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';
+    ctx.shadowColor='rgba(0,0,0,0.12)';ctx.shadowBlur=12;ctx.shadowOffsetY=4;
+    ctx.fillText('🎂 生日快乐！',W/2,95);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    ctx.font='28px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';ctx.fillText(`致：${name}`,W/2,140);
 
-    ctx.font='12px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';
-    ctx.fillText('Happy Everyday · 扫码打开给Ta惊喜 🎉',W/2,H-25);
+    // Draw images and texts
+    let y=headerH;
+    const imgPadding=40;
+    const imgDrawW=W-imgPadding*2;
 
-    resultSection.classList.add('show');resultSection.scrollIntoView({behavior:'smooth',block:'start'});
-    generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme);
+    let imagesLoaded=0;
+    const totalImages=imgCount;
+    const imgEls=[];
+
+    function drawAfterImagesLoad(){
+      for(let i=0;i<imgCount;i++){
+        if(texts[i]){
+          ctx.font='22px "ZCOOL KuaiLe",cursive';ctx.fillStyle='rgba(255,255,255,0.95)';
+          ctx.shadowColor='rgba(0,0,0,0.1)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;
+          ctx.fillText(texts[i],W/2,y+30);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+        }
+        const img=imgEls[i];
+        if(img){
+          ctx.save();
+          roundRect(ctx,imgPadding,y+50,imgDrawW,imgH-80,12);ctx.clip();
+          const scale=Math.max(imgDrawW/img.width,(imgH-80)/img.height);
+          const dw=img.width*scale,dh=img.height*scale;
+          ctx.drawImage(img,imgPadding+(imgDrawW-dw)/2,y+50+(imgH-80-dh)/2,dw,dh);
+          ctx.restore();
+          ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;
+          roundRect(ctx,imgPadding,y+50,imgDrawW,imgH-80,12);ctx.stroke();
+        }
+        y+=imgH+textH;
+      }
+      if(texts[imgCount]){
+        ctx.font='20px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.fillText(texts[imgCount],W/2,y+20);
+      }
+      ctx.font='16px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.65)';
+      ctx.fillText(`—— 来自 ${sender} 的祝福`,W/2,y+55);
+      ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(40,y+80);ctx.lineTo(W-40,y+80);ctx.stroke();
+      const shareURL=buildShareURL();
+      drawQRCodeOnCanvas(ctx,shareURL,W,H,t,y+90);
+      ctx.font='12px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';
+      ctx.fillText('Happy Everyday · 扫码打开给Ta惊喜 🎉',W/2,H-25);
+      resultSection.classList.add('show');resultSection.scrollIntoView({behavior:'smooth',block:'start'});
+      generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme);
+      if(shareURL.length>80000){showToast('⚠️ 链接较长，建议优先分享二维码',3000)}
+    }
+
+    uploadedImages.forEach((src,i)=>{
+      const img=new Image();img.crossOrigin='anonymous';
+      img.onload=()=>{imgEls[i]=img;imagesLoaded++;if(imagesLoaded>=totalImages)drawAfterImagesLoad()};
+      img.onerror=()=>{imgEls[i]=null;imagesLoaded++;if(imagesLoaded>=totalImages)drawAfterImagesLoad()};
+      img.src=src;
+    });
   }
 
-  // Load all images
+  // Generate thumbnails first, then draw canvas
   uploadedImages.forEach((src,i)=>{
-    const img=new Image();img.crossOrigin='anonymous';
-    img.onload=()=>{
-      imgEls[i]=img;imagesLoaded++;
-      if(imagesLoaded>=totalImages)drawAfterImagesLoad();
-    };
-    img.onerror=()=>{
-      imgEls[i]=null;imagesLoaded++;
-      if(imagesLoaded>=totalImages)drawAfterImagesLoad();
-    };
-    img.src=src;
+    createThumbnail(src,150,0.3,(b64)=>{
+      thumbnailData[i]=b64||'';
+      thumbsReady++;
+      if(thumbsReady>=totalThumbs)proceedWithCanvas();
+    });
   });
 }
 
@@ -902,8 +930,22 @@ function startDisplayMode(){
     name:urlParams.get('name')||'',sender:urlParams.get('sender')||'',
     month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
     themeIdx:parseInt(urlParams.get('theme'))||0,blessing:urlParams.get('blessing')||'生日快乐！',
-    images:urlParams.get('images')?JSON.parse(decodeURIComponent(urlParams.get('images'))):[],
-    texts:urlParams.get('texts')?JSON.parse(decodeURIComponent(urlParams.get('texts'))):[]
+    images:(function(){
+      const raw=urlParams.get('img');if(!raw)return[];
+      try{
+        const dec=typeof LZString!=='undefined'?LZString.decompressFromEncodedURIComponent(raw):decodeURIComponent(raw);
+        if(!dec)return[];
+        return dec.split('|').map(b64=>b64?'data:image/jpeg;base64,'+b64:'').filter(Boolean);
+      }catch(e){return[]}
+    })(),
+    texts:(function(){
+      const raw=urlParams.get('txt');if(!raw)return[];
+      try{
+        const dec=typeof LZString!=='undefined'?LZString.decompressFromEncodedURIComponent(raw):decodeURIComponent(raw);
+        if(!dec)return[];
+        return JSON.parse(dec);
+      }catch(e){return[]}
+    })()
   };
   const t=THEMES[displayData.themeIdx]||THEMES[0];selectTheme(displayData.themeIdx);
 
@@ -936,7 +978,13 @@ function startDisplayMode(){
     displayData.images.forEach((src,i)=>{
       const pi=document.createElement('div');pi.className='d-phase';
       const txt=displayData.texts&&displayData.texts[i]?displayData.texts[i]:'';
-      pi.innerHTML=`${txt?`<div class="d-phase-title">${txt}</div>`:''}<img class="d-phase-img" src="${src}" alt="图片${i+1}">${i===displayData.images.length-1&&displayData.texts&&displayData.texts[displayData.images.length]?`<div class="d-phase-text">${displayData.texts[displayData.images.length]}</div>`:''}`;
+      if(txt){const tEl=document.createElement('div');tEl.className='d-phase-title';tEl.textContent=txt;pi.appendChild(tEl)}
+      const imgEl=document.createElement('img');imgEl.className='d-phase-img';imgEl.alt=`图片${i+1}`;
+      imgEl.onerror=function(){this.style.display='none';const ph=document.createElement('div');ph.className='d-img-placeholder';ph.textContent='📷';pi.appendChild(ph)};
+      imgEl.src=src;pi.appendChild(imgEl);
+      if(i===displayData.images.length-1&&displayData.texts&&displayData.texts[displayData.images.length]){
+        const ft=document.createElement('div');ft.className='d-phase-text';ft.textContent=displayData.texts[displayData.images.length];pi.appendChild(ft);
+      }
       scroll.appendChild(pi);phases.push(pi);
     });
   }
@@ -971,7 +1019,9 @@ function startDisplayMode(){
     if(!phase)return;
     const els=phase.querySelectorAll('.d-phase-title,.d-phase-img,.d-phase-text,.p3-div');
     els.forEach((el,i)=>{
-      setTimeout(()=>{el.style.cssText+=';animation:popIn 0.7s ease forwards'},(i+1)*250);
+      const isImage=el.classList.contains('d-phase-img');
+      const animName=isImage?'imgReveal':'popIn';
+      setTimeout(()=>{el.style.cssText+=`;animation:${animName} 0.8s ease forwards`},(i+1)*300);
     });
     if(num===phases.length){
       setTimeout(()=>{
