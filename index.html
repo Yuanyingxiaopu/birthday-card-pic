@@ -783,6 +783,10 @@ function buildShareURL(){
   }
   return url;
 }
+function buildShortURL(){
+  const n=encodeURIComponent(nameInput.value.trim()),s=encodeURIComponent(senderInput.value.trim()),b=encodeURIComponent(blessingInput.value.trim());
+  return `${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
+}
 
 function generateCard(){
   const name=nameInput.value.trim(),sender=senderInput.value.trim();
@@ -908,14 +912,19 @@ function generateCard(){
 }
 
 function drawQRCodeOnCanvas(ctx,url,W,H,t,qrY){
-  try{const qr=qrcode(0,'L');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cs=Math.floor(100/sz),qs=sz*cs,cx=W/2,cy=qrY+70;
+  try{
+    // QR code has data limits, use short URL (without images) for QR
+    const shortUrl=url.length>2000?buildShortURL():url;
+    const qr=qrcode(0,'L');qr.addData(shortUrl);qr.make();const sz=qr.getModuleCount(),cs=Math.floor(100/sz),qs=sz*cs,cx=W/2,cy=qrY+70;
   ctx.fillStyle='rgba(255,255,255,0.9)';roundRect(ctx,cx-qs/2-12,cy-qs/2-12,qs+24,qs+24,10);ctx.fill();
   for(let r=0;r<sz;r++)for(let c=0;c<sz;c++)if(qr.isDark(r,c)){ctx.fillStyle=t.cg[2];ctx.fillRect(cx-qs/2+c*cs,cy-qs/2+r*cs,cs,cs)}
-  }catch(e){}
+  }catch(e){console.warn('QR generation failed:',e)}
 }
 function generateQRCode(url){
   const el=$('qrcodeEl');el.innerHTML='';
-  try{const qr=qrcode(0,'M');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cl=Math.max(4,Math.floor(200/sz));
+  try{
+    const shortUrl=url.length>2000?buildShortURL():url;
+    const qr=qrcode(0,'M');qr.addData(shortUrl);qr.make();const sz=qr.getModuleCount(),cl=Math.max(4,Math.floor(200/sz));
   const c=document.createElement('canvas');c.width=sz*cl;c.height=sz*cl;const ctx=c.getContext('2d');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
   for(let r=0;r<sz;r++)for(let co=0;co<sz;co++)if(qr.isDark(r,co)){ctx.fillStyle=THEMES[currentTheme].cg[1];ctx.fillRect(co*cl,r*cl,cl,cl)}
@@ -923,7 +932,7 @@ function generateQRCode(url){
   img.src=c.toDataURL('image/png');
   img.style.width='200px';img.style.height='200px';img.style.borderRadius='8px';
   el.appendChild(img);
-  }catch(e){el.innerHTML='<p style="color:#999;font-size:12px">二维码生成失败</p>'}
+  }catch(e){el.innerHTML='<p style="color:#999;font-size:12px">二维码生成失败（链接过长）</p>'}
 }
 function drawStar(ctx,x,y,r){ctx.beginPath();for(let i=0;i<5;i++){const a=Math.PI*2*i/5-Math.PI/2,ax=x+Math.cos(a)*r,ay=y+Math.sin(a)*r,b=a+Math.PI/5,bx=x+Math.cos(b)*r*0.4,by=y+Math.sin(b)*r*0.4;if(i===0)ctx.moveTo(ax,ay);else ctx.lineTo(ax,ay);ctx.lineTo(bx,by)}ctx.closePath();ctx.fill()}
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath()}
