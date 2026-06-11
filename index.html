@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Happy Everyday · 生日快乐 🎂（图片版）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#ff6b9d;--primary-light:#ffb3cc;--primary-dark:#e8527f;
+  --bg:#fff5f8;--card-bg:rgba(255,255,255,0.92);
+  --text:#2d2d2d;--text-secondary:#888;
+  --radius:16px;--radius-sm:10px;
+  --shadow:0 8px 32px rgba(0,0,0,0.08);
+  --theme-color:#ff6b9d;
+}
+html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+
+.bg-decor{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg-decor .orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;animation:orbFloat 12s ease-in-out infinite}
+.bg-decor .orb:nth-child(1){width:300px;height:300px;background:var(--theme-color);top:-80px;left:-60px}
+.bg-decor .orb:nth-child(2){width:250px;height:250px;background:var(--theme-color);bottom:-50px;right:-40px;animation-delay:-4s;opacity:.25}
+.bg-decor .orb:nth-child(3){width:200px;height:200px;background:var(--theme-color);top:40%;left:60%;animation-delay:-8s;opacity:.2}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-20px) scale(1.05)}66%{transform:translate(-20px,15px) scale(.95)}}
+
+.app{position:relative;z-index:1;min-height:100%;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px}
+
+.header{text-align:center;margin-bottom:24px;width:100%;max-width:480px}
+.header h1{font-family:'ZCOOL KuaiLe',cursive;font-size:28px;color:var(--theme-color);margin-bottom:4px;transition:color .3s}
+.header p{font-size:13px;color:var(--text-secondary)}
+
+.card{width:100%;max-width:480px;background:var(--card-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.6);padding:28px 24px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--theme-color);transition:background .3s}
+
+.form-title{font-family:'ZCOOL KuaiLe',cursive;font-size:22px;text-align:center;margin-bottom:20px;color:var(--theme-color)}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:#555}
+.form-group label .req{color:#ff4757;margin-left:2px}
+.form-input{width:100%;height:44px;border:1.5px solid #e8e8e8;border-radius:var(--radius-sm);padding:0 14px;font-size:15px;font-family:inherit;background:#fafafa;color:var(--text);outline:none;transition:all .25s}
+.form-input:focus{border-color:var(--theme-color);background:#fff;box-shadow:0 0 0 3px rgba(255,107,157,0.1)}
+.form-input::placeholder{color:#bbb}
+.birthday-trigger{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.birthday-trigger .arrow{font-size:12px;color:#999}
+
+.theme-colors{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.theme-color-item{text-align:center}
+.theme-dot{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .25s;position:relative}
+.theme-dot:hover{transform:scale(1.15)}
+.theme-dot.active{border-color:var(--text);transform:scale(1.15)}
+.theme-dot.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.3)}
+.theme-label{font-size:10px;color:#999;margin-top:4px}
+
+.blessing-area{position:relative}
+.blessing-textarea{width:100%;min-height:80px;border:1.5px solid #e8e8e8;border-radius:var(--radius-sm);padding:12px 14px;font-size:14px;font-family:inherit;background:#fafafa;color:var(--text);outline:none;resize:vertical;transition:all .25s;line-height:1.6}
+.blessing-textarea:focus{border-color:var(--theme-color);background:#fff;box-shadow:0 0 0 3px rgba(255,107,157,0.1)}
+.blessing-btns{display:flex;gap:8px;margin-top:6px}
+.blessing-btns button{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid #e0e0e0;background:#fff;color:var(--text-secondary);cursor:pointer;transition:all .2s;font-family:inherit}
+.blessing-btns button:hover{border-color:var(--theme-color);color:var(--theme-color)}
+
+/* Image upload area */
+.img-section{margin-bottom:18px}
+.img-section label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:#555}
+.img-actions{display:flex;gap:8px;margin-bottom:10px}
+.img-actions button{font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid #e0e0e0;background:#fff;color:var(--text-secondary);cursor:pointer;transition:all .2s;font-family:inherit}
+.img-actions button:hover{border-color:var(--theme-color);color:var(--theme-color)}
+.img-actions button.active{background:var(--theme-color);color:#fff;border-color:var(--theme-color)}
+
+.img-upload-zone{border:2px dashed #e0e0e0;border-radius:var(--radius-sm);padding:24px;text-align:center;cursor:pointer;transition:all .25s;background:#fafafa}
+.img-upload-zone:hover{border-color:var(--theme-color);background:rgba(255,107,157,0.03)}
+.img-upload-zone .upload-icon{font-size:32px;margin-bottom:6px}
+.img-upload-zone .upload-text{font-size:14px;color:#999}
+.img-upload-zone .upload-hint{font-size:11px;color:#bbb;margin-top:4px}
+
+.img-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.img-item{width:calc(25% - 6px);aspect-ratio:1;border-radius:10px;overflow:hidden;position:relative;cursor:grab;transition:all .2s;border:2px solid transparent;background:#f5f5f5}
+.img-item:active{cursor:grabbing}
+.img-item.dragging{opacity:.5;transform:scale(0.9)}
+.img-item.drag-over{border-color:var(--theme-color);transform:scale(1.05)}
+.img-item img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.img-item .img-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.img-item:hover .img-remove{opacity:1}
+.img-item .img-num{position:absolute;bottom:4px;left:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.45);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
+.img-add{width:calc(25% - 6px);aspect-ratio:1;border-radius:10px;border:2px dashed #ddd;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;background:#fafafa;font-size:24px;color:#ccc}
+.img-add:hover{border-color:var(--theme-color);color:var(--theme-color)}
+.img-add span{font-size:10px;color:#bbb;margin-top:2px}
+
+.img-drag-tip{text-align:center;font-size:11px;color:#bbb;margin-top:6px}
+
+/* Recommended images */
+.recommended-grid{display:none;flex-wrap:wrap;gap:8px;margin-top:10px}
+.recommended-grid.show{display:flex}
+.recommended-item{width:calc(25% - 6px);aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;border:2px solid transparent;position:relative}
+.recommended-item:hover{transform:scale(1.05);border-color:var(--theme-color)}
+.recommended-item.selected{border-color:var(--theme-color)}
+.recommended-item.selected::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);color:#fff;font-size:18px;font-weight:700}
+.recommended-item img{width:100%;height:100%;object-fit:cover}
+
+/* Advanced section */
+.advanced-toggle{display:flex;align-items:center;justify-content:space-between;padding:12px 0;cursor:pointer;user-select:none;border-top:1px solid #f0f0f0;margin-top:4px}
+.advanced-toggle span{font-size:14px;font-weight:500;color:#555}
+.advanced-toggle .arrow-icon{font-size:12px;color:#999;transition:transform .3s}
+.advanced-toggle.open .arrow-icon{transform:rotate(180deg)}
+.advanced-content{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.advanced-content.open{max-height:800px}
+.advanced-content .adv-item{margin-bottom:10px}
+.advanced-content .adv-item label{display:block;font-size:12px;color:#888;margin-bottom:4px}
+.advanced-content .adv-item input{width:100%;height:36px;border:1.5px solid #e8e8e8;border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;background:#fafafa;color:var(--text);outline:none;transition:all .25s}
+.advanced-content .adv-item input:focus{border-color:var(--theme-color);background:#fff}
+
+.default-check{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;color:#555;cursor:pointer}
+.default-check input{accent-color:var(--theme-color);width:16px;height:16px}
+
+.submit-btn{width:100%;height:50px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--theme-color),var(--theme-color));color:#fff;font-size:17px;font-family:'ZCOOL KuaiLe',cursive;cursor:pointer;letter-spacing:2px;transition:all .3s;box-shadow:0 4px 16px rgba(255,107,157,0.3);position:relative;overflow:hidden}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(255,107,157,0.4)}
+.submit-btn:active{transform:translateY(0);box-shadow:0 2px 8px rgba(255,107,157,0.3)}
+.submit-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 30%,rgba(255,255,255,0.2) 50%,transparent 70%);transform:translateX(-100%);transition:none}
+.submit-btn:hover::after{transform:translateX(100%);transition:transform .6s}
+
+.result-section{margin-top:24px;display:none;text-align:center}
+.result-section.show{display:block;animation:fadeUp .5s ease}
+.result-tip{font-size:13px;color:var(--theme-color);margin-bottom:16px;line-height:1.6}
+.result-card{width:100%;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);position:relative;background:#fff}
+.result-card canvas{display:block;width:100%;height:auto}
+.result-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.result-actions button{width:100%;height:46px;border:none;border-radius:var(--radius-sm);font-size:14px;font-family:inherit;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-download{background:var(--theme-color);color:#fff;box-shadow:0 4px 12px rgba(255,107,157,0.25)}
+.btn-download:hover{opacity:.9;transform:translateY(-1px)}
+.btn-copy{background:#fff;color:var(--theme-color);border:1.5px solid var(--theme-color)}
+.btn-copy:hover{background:rgba(255,107,157,0.05)}
+.qrcode-wrap{margin-top:20px;padding:20px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);display:inline-block}
+.qrcode-wrap p{font-size:13px;color:#999;margin-bottom:10px}
+.qrcode-wrap canvas{display:block;margin:0 auto}
+.qrcode-wrap .qr-tip{font-size:11px;color:#bbb;margin-top:8px}
+
+/* Picker */
+.picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.picker-overlay.show{display:flex;animation:fadeIn .2s ease}
+.picker-panel{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:20px 0 0;animation:slideUp .3s ease}
+.picker-header{display:flex;justify-content:space-between;align-items:center;padding:0 20px 16px;border-bottom:1px solid #f0f0f0}
+.picker-header h3{font-size:16px;font-weight:500}
+.picker-cancel,.picker-confirm{background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px}
+.picker-cancel{color:#999}.picker-confirm{color:var(--theme-color);font-weight:600}
+.picker-body{display:flex;height:220px;position:relative;padding:0 10px}
+.picker-body::before{content:'';position:absolute;left:10px;right:10px;top:88px;height:44px;border-top:1px solid #e8e8e8;border-bottom:1px solid #e8e8e8;background:rgba(255,255,157,0.04);z-index:2;pointer-events:none;border-radius:8px}
+.picker-column{flex:1;height:100%;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}
+.picker-column::-webkit-scrollbar{display:none}
+.picker-item{height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#999;scroll-snap-align:center;cursor:pointer;transition:all .15s;user-select:none}
+.picker-sep{max-width:30px;flex:none;display:flex;align-items:center;justify-content:center}
+.picker-sep span{color:#999;font-size:16px}
+.picker-padding{height:88px}
+
+/* History */
+.history-btn{position:fixed;bottom:24px;left:20px;z-index:50;width:48px;height:48px;border-radius:50%;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.1);border:none;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .25s}
+.history-btn:hover{transform:scale(1.1);box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+.history-panel{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.history-panel.show{display:flex;animation:fadeIn .2s ease}
+.history-content{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:20px;max-height:70vh;overflow-y:auto;animation:slideUp .3s ease}
+.history-content h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.history-content .sub{font-size:12px;color:#999;margin-bottom:16px}
+.history-item{display:flex;align-items:center;padding:12px;border-radius:var(--radius-sm);background:#fafafa;margin-bottom:8px;cursor:pointer;transition:all .2s}
+.history-item:hover{background:#f0f0f0}
+.history-item .info{flex:1;min-width:0}
+.history-item .name{font-size:14px;font-weight:500}
+.history-item .date{font-size:12px;color:#999}
+.history-item .del-btn{width:32px;height:32px;border:none;background:none;color:#ccc;font-size:16px;cursor:pointer;border-radius:50%;transition:all .2s}
+.history-item .del-btn:hover{background:#fee;color:#ff4757}
+.history-empty{text-align:center;padding:30px;color:#ccc;font-size:14px}
+.history-close{display:block;width:100%;height:44px;border:none;background:none;color:#999;font-size:14px;cursor:pointer;margin-top:12px;font-family:inherit}
+
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);background:rgba(0,0,0,0.75);color:#fff;padding:12px 24px;border-radius:24px;font-size:14px;z-index:200;opacity:0;pointer-events:none;transition:all .3s}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+.footer{width:100%;max-width:480px;text-align:center;margin-top:32px;padding:20px 0;border-top:1px solid rgba(0,0,0,0.05)}
+.footer .brand{font-family:'ZCOOL KuaiLe',cursive;font-size:18px;color:var(--theme-color);margin-bottom:8px}
+.footer .desc{font-size:12px;color:#bbb;line-height:1.6;margin-bottom:16px}
+.footer-copy{font-size:11px;color:#ccc}
+
+/* ============================= */
+/* ===== DISPLAY MODE ========== */
+/* ============================= */
+#displayMode{display:none;position:fixed;inset:0;z-index:1000;overflow:hidden}
+#displayMode.show{display:flex;flex-direction:column}
+#displayCanvas{position:absolute;inset:0;width:100%;height:100%}
+
+.d-scroll{position:relative;z-index:3;flex:1;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.d-scroll::-webkit-scrollbar{display:none}
+
+.d-phase{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;pointer-events:none;scroll-snap-align:start;position:relative}
+
+.d-swipe-hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:13px;pointer-events:none;animation:swipeHint 2s ease-in-out infinite}
+@keyframes swipeHint{0%,100%{opacity:.4;transform:translateX(-50%) translateY(0)}50%{opacity:.7;transform:translateX(-50%) translateY(-8px)}}
+
+.d-phase-title{font-family:'ZCOOL KuaiLe',cursive;font-size:clamp(22px,6vw,36px);color:#fff;text-shadow:0 3px 15px rgba(0,0,0,0.15);opacity:0;letter-spacing:3px;margin-bottom:12px}
+.d-phase-img{max-width:85%;max-height:60vh;border-radius:12px;opacity:0;box-shadow:0 8px 32px rgba(0,0,0,0.2);object-fit:contain}
+.d-phase-text{font-size:clamp(16px,4vw,22px);color:rgba(255,255,255,0.95);line-height:1.8;max-width:500px;opacity:0;margin-top:16px;text-shadow:0 2px 10px rgba(0,0,0,0.15)}
+
+.display-replay{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);z-index:10;pointer-events:auto;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.25);color:#fff;padding:10px 28px;border-radius:24px;font-size:14px;font-family:inherit;cursor:pointer;transition:all .25s;opacity:0;display:none}
+.display-replay.show{opacity:1;display:block}
+.display-replay:hover{background:rgba(255,255,255,0.25)}
+.display-music{position:absolute;top:20px;right:20px;z-index:10;pointer-events:auto;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s}
+.display-music:hover{background:rgba(255,255,255,0.25)}
+.display-music.playing{animation:spin 2s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{opacity:0;transform:scale(0.3)}70%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes slideInUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes textGlow{0%,100%{text-shadow:0 0 30px rgba(255,255,255,0.4),0 4px 20px rgba(0,0,0,0.15)}50%{text-shadow:0 0 60px rgba(255,255,255,0.6),0 4px 20px rgba(0,0,0,0.15)}}
+
+@media(min-width:600px){.app{padding:40px 20px 60px}.card{padding:36px 32px}}
+@media(max-width:360px){.header h1{font-size:22px}.card{padding:20px 16px}.theme-dot{width:32px;height:32px}}
+</style>
+</head>
+<body>
+
+<!-- ===== EDIT MODE ===== -->
+<div class="bg-decor"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
+<div class="app" id="editMode">
+  <header class="header">
+    <h1>🎂 生日快乐（图片版）</h1>
+    <p>Happy Everyday · 用心传递每一份温暖</p>
+  </header>
+
+  <div class="card">
+    <div class="form-title">📸 生日贺卡生成器（图片款）</div>
+    <div class="form-group">
+      <label>寿星昵称 <span class="req">*</span></label>
+      <input type="text" class="form-input" id="nameInput" placeholder="输入Ta的名字" maxlength="20">
+    </div>
+    <div class="form-group">
+      <label>生日 <span class="req">*</span></label>
+      <div class="form-input birthday-trigger" id="birthdayTrigger" tabindex="0">
+        <span id="birthdayDisplay" style="color:#bbb">选择日期</span>
+        <span class="arrow">▼</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>发送人昵称 <span class="req">*</span></label>
+      <input type="text" class="form-input" id="senderInput" placeholder="你的名字" maxlength="20">
+    </div>
+    <div class="form-group">
+      <label>主题色</label>
+      <div class="theme-colors" id="themeColors"></div>
+    </div>
+    <div class="form-group">
+      <label>祝福语</label>
+      <div class="blessing-area">
+        <textarea class="blessing-textarea" id="blessingInput" placeholder="写下你的祝福..." maxlength="200"></textarea>
+        <div class="blessing-btns">
+          <button id="rotateBlessing">🔄 换一条</button>
+          <button id="clearBlessing">✕ 清空</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image upload section -->
+    <div class="img-section">
+      <label>图片</label>
+      <div class="img-actions">
+        <button id="useRecommended">🖼️ 使用推荐图片</button>
+        <button id="changeRecommended" style="display:none">🔄 换一组</button>
+      </div>
+
+      <!-- Recommended images grid -->
+      <div class="recommended-grid" id="recommendedGrid"></div>
+
+      <!-- Upload zone -->
+      <div class="img-upload-zone" id="imgUploadZone" style="display:block">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">点击上传图片</div>
+        <div class="upload-hint">最多上传8张，支持JPG/PNG</div>
+        <input type="file" id="imgFileInput" accept="image/*" multiple style="display:none">
+      </div>
+
+      <!-- Image preview grid -->
+      <div class="img-grid" id="imgGrid"></div>
+      <div class="img-drag-tip" id="imgDragTip" style="display:none">可通过长按拖动排序！</div>
+    </div>
+
+    <div class="form-group">
+      <label>Ta的邮箱（选填）</label>
+      <input type="email" class="form-input" id="emailInput" placeholder="example@mail.com">
+    </div>
+
+    <!-- Advanced section -->
+    <div class="advanced-toggle" id="advancedToggle">
+      <span>高级</span>
+      <span class="arrow-icon">▼</span>
+    </div>
+    <div class="advanced-content" id="advancedContent">
+      <label class="default-check">
+        <input type="checkbox" id="useDefaultText" checked>
+        使用默认文案
+      </label>
+      <div id="customTextFields">
+        <div class="adv-item"><label>第一张图片上方（祝福语1）</label><input type="text" id="blessing1" placeholder="祝福语1"></div>
+        <div class="adv-item"><label>第二张图片上方（祝福语2）</label><input type="text" id="blessing2" placeholder="祝福语2"></div>
+        <div class="adv-item"><label>第三张图片上方（祝福语3）</label><input type="text" id="blessing3" placeholder="祝福语3"></div>
+        <div class="adv-item"><label>第四张图片上方（祝福语4）</label><input type="text" id="blessing4" placeholder="祝福语4"></div>
+        <div class="adv-item"><label>第五张图片上方（祝福语5）</label><input type="text" id="blessing5" placeholder="祝福语5"></div>
+        <div class="adv-item"><label>第六张图片上方（祝福语6）</label><input type="text" id="blessing6" placeholder="祝福语6"></div>
+        <div class="adv-item"><label>第七张图片上方（祝福语7）</label><input type="text" id="blessing7" placeholder="祝福语7"></div>
+        <div class="adv-item"><label>第八张图片上方（祝福语8）</label><input type="text" id="blessing8" placeholder="祝福语8"></div>
+        <div class="adv-item"><label>第八张图片下方（祝福语9）</label><input type="text" id="blessing9" placeholder="祝福语9"></div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="generateBtn" style="margin-top:18px">✨ 立即生成 ✨</button>
+
+    <div class="result-section" id="resultSection">
+      <p class="result-tip">🎉 请保存 贺卡图片（长按可保存）和 链接，用于分享和预览！</p>
+      <div class="result-card" id="resultCard">
+        <canvas id="cardCanvas" width="600" height="1200"></canvas>
+      </div>
+      <div class="result-actions">
+        <button class="btn-download" id="downloadBtn">📥 下载贺卡图片</button>
+        <button class="btn-copy" id="copyBtn">🔗 复制链接</button>
+      </div>
+      <div class="qrcode-wrap" id="qrcodeWrap">
+        <p>📱 扫码查看生日祝福</p>
+        <div id="qrcodeEl"></div>
+        <div class="qr-tip">长按二维码可保存图片</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="brand">Happy Everyday</div>
+    <div class="desc">用心传递每一份温暖<br>让每一个特殊时刻都充满惊喜与感动</div>
+    <div class="footer-copy">Copyright © 2025 Happy Everyday</div>
+  </footer>
+</div>
+
+<!-- ===== DISPLAY MODE ===== -->
+<div id="displayMode">
+  <canvas id="displayCanvas"></canvas>
+  <div class="d-scroll" id="dScroll">
+    <!-- Phases will be generated dynamically -->
+  </div>
+  <button class="display-replay" id="displayReplay">🔄 再看一次</button>
+  <button class="display-music" id="displayMusic" title="音乐">🎵</button>
+</div>
+
+<!-- Birthday Wheel Picker -->
+<div class="picker-overlay" id="pickerOverlay">
+  <div class="picker-panel">
+    <div class="picker-header">
+      <button class="picker-cancel" id="pickerCancel">取消</button>
+      <h3>选择生日（月 / 日）</h3>
+      <button class="picker-confirm" id="pickerConfirm">确定</button>
+    </div>
+    <div class="picker-body">
+      <div class="picker-column" id="monthColumn"></div>
+      <div class="picker-sep"><span>/</span></div>
+      <div class="picker-column" id="dayColumn"></div>
+    </div>
+  </div>
+</div>
+
+<button class="history-btn" id="historyBtn">📋</button>
+<div class="history-panel" id="historyPanel">
+  <div class="history-content">
+    <h3>📌 我的制作</h3>
+    <div class="sub">已生成的祝福卡记录，可快速重新打开</div>
+    <div id="historyList"></div>
+    <button class="history-close" id="historyClose">取消</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+const THEMES=[
+  {name:'樱桃粉',color:'#ff6b9d',light:'#ffb3cc',dark:'#e8527f',gradient:'linear-gradient(135deg,#ff6b9d,#ff8fab)',cg:['#ffb3cc','#ff6b9d','#e8527f']},
+  {name:'天空蓝',color:'#4facfe',light:'#a0d2ff',dark:'#2d8cf0',gradient:'linear-gradient(135deg,#4facfe,#00f2fe)',cg:['#a0d2ff','#4facfe','#2d8cf0']},
+  {name:'中国红',color:'#e74c3c',light:'#ff8a80',dark:'#c0392b',gradient:'linear-gradient(135deg,#e74c3c,#ff6b6b)',cg:['#ff8a80','#e74c3c','#c0392b']},
+  {name:'提夫尼蓝',color:'#0abde3',light:'#7ee8ff',dark:'#0097b2',gradient:'linear-gradient(135deg,#0abde3,#48dbfb)',cg:['#7ee8ff','#0abde3','#0097b2']},
+  {name:'牛油果绿',color:'#2ed573',light:'#7bed9f',dark:'#20bf6b',gradient:'linear-gradient(135deg,#2ed573,#7bed9f)',cg:['#7bed9f','#2ed573','#20bf6b']},
+  {name:'爱马仕橙',color:'#ff9f43',light:'#ffcb80',dark:'#ee7600',gradient:'linear-gradient(135deg,#ff9f43,#f6b93b)',cg:['#ffcb80','#ff9f43','#ee7600']},
+  {name:'玫瑰紫',color:'#a55eea',light:'#cd9cff',dark:'#8854d0',gradient:'linear-gradient(135deg,#a55eea,#cd84f1)',cg:['#cd9cff','#a55eea','#8854d0']},
+  {name:'柠檬黄',color:'#fed330',light:'#fff59d',dark:'#f7b731',gradient:'linear-gradient(135deg,#fed330,#fff200)',cg:['#fff59d','#fed330','#f7b731']}
+];
+
+const RECOMMENDED_IMAGES=[
+  ['https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop'],
+  ['https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1518173946687-a1e2a370a5d8?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=400&h=400&fit=crop'],
+  ['https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=400&h=400&fit=crop']
+];
+let recSetIdx=0;
+
+let currentTheme=0,selectedMonth=1,selectedDay=1,pickerMonth=1,pickerDay=1;
+let uploadedImages=[];
+
+const BLESSINGS=[
+  '生日快乐！愿你每一天都充满阳光和笑容！',
+  '又长大一岁啦！祝你永远18岁，开心每一天！',
+  '在这个特别的日子里，祝你心想事成，万事如意！',
+  '愿你的生日充满无穷的快乐，愿你今天的回忆温馨！',
+  '生日快乐！愿所有的幸福都围绕着你！',
+  '祝你生日快乐，天天开心，事事顺利！',
+  '又是一年花开时，愿你笑容比花儿更灿烂！',
+  '愿你此生尽兴，赤诚善良，生日快乐！',
+  '祝最可爱的你，生日快乐，永远被爱包围！',
+  '愿你的每一个愿望都能实现，生日快乐！',
+  '愿你眼中总有光芒，活成你想要的模样！',
+  '时间不停留，但我的祝福会一直陪着你！'
+];
+let blessingIndex=0;
+
+const DEFAULT_TEXTS=['生日快乐！','愿你天天开心！','心想事成！','万事如意！','永远幸福！','青春常驻！','笑口常开！','幸福美满！','友谊长存！'];
+
+const $=id=>document.getElementById(id);
+const nameInput=$('nameInput'),senderInput=$('senderInput'),blessingInput=$('blessingInput');
+const birthdayTrigger=$('birthdayTrigger'),birthdayDisplay=$('birthdayDisplay');
+const pickerOverlay=$('pickerOverlay'),monthColumn=$('monthColumn'),dayColumn=$('dayColumn');
+const generateBtn=$('generateBtn'),resultSection=$('resultSection');
+const cardCanvas=$('cardCanvas'),downloadBtn=$('downloadBtn'),copyBtn=$('copyBtn');
+const toastEl=$('toast'),historyBtn=$('historyBtn'),historyPanel=$('historyPanel'),historyList=$('historyList'),historyClose=$('historyClose');
+const themeColorsEl=$('themeColors');
+const imgGrid=$('imgGrid'),imgUploadZone=$('imgUploadZone'),imgFileInput=$('imgFileInput');
+const imgDragTip=$('imgDragTip');
+
+const urlParams=new URLSearchParams(location.search);
+const isDisplayMode=urlParams.has('name')&&urlParams.has('sender');
+
+function initThemes(){
+  THEMES.forEach((t,i)=>{
+    const w=document.createElement('div');w.className='theme-color-item';
+    const d=document.createElement('div');d.className='theme-dot'+(i===0?' active':'');
+    d.style.background=t.gradient;d.title=t.name;
+    d.addEventListener('click',()=>selectTheme(i));
+    const l=document.createElement('div');l.className='theme-label';l.textContent=t.name;
+    w.appendChild(d);w.appendChild(l);themeColorsEl.appendChild(w);
+  });
+}
+function selectTheme(i){
+  currentTheme=i;const t=THEMES[i];
+  document.documentElement.style.setProperty('--theme-color',t.color);
+  document.querySelectorAll('.theme-dot').forEach((d,j)=>d.classList.toggle('active',j===i));
+  const btn=document.querySelector('.submit-btn');
+  if(btn){btn.style.background=t.gradient;btn.style.boxShadow=`0 4px 16px ${t.color}44`}
+}
+
+function getDaysInMonth(m){return[31,29,31,30,31,30,31,31,30,31,30,31][m-1]}
+function buildPicker(){
+  monthColumn.innerHTML='';dayColumn.innerHTML='';
+  const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
+  monthColumn.appendChild(mk());
+  for(let m=1;m<=12;m++){const d=document.createElement('div');d.className='picker-item';d.textContent=String(m).padStart(2,'0');d.dataset.val=m;monthColumn.appendChild(d)}
+  monthColumn.appendChild(mk());
+  dayColumn.appendChild(mk());
+  const dim=getDaysInMonth(pickerMonth);
+  for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
+  dayColumn.appendChild(mk());
+}
+function scrollPicker(col,val){
+  col.querySelectorAll('.picker-item').forEach(it=>{it.style.color='';it.style.fontWeight=''});
+  const items=[...col.querySelectorAll('.picker-item')];
+  const t=items.find(it=>it.dataset.val==val);
+  if(t){col.scrollTop=t.offsetTop-88;t.style.color='var(--theme-color)';t.style.fontWeight='600'}
+}
+function readPickerCol(col){
+  const items=[...col.querySelectorAll('.picker-item')];const target=col.scrollTop+88;
+  let best=items[0],min=Infinity;items.forEach(it=>{const d=Math.abs(it.offsetTop-target);if(d<min){min=d;best=it}});
+  return parseInt(best.dataset.val)||1;
+}
+let mT,dT;
+function onPickerScroll(col,type){
+  clearTimeout(type==='month'?mT:dT);
+  const tm=setTimeout(()=>{
+    const val=readPickerCol(col);
+    if(type==='month'){
+      pickerMonth=val;const oldDay=pickerDay;dayColumn.innerHTML='';
+      const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
+      dayColumn.appendChild(mk());const dim=getDaysInMonth(val);
+      for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
+      dayColumn.appendChild(mk());pickerDay=Math.min(oldDay,dim);scrollPicker(dayColumn,pickerDay);
+    }else{pickerDay=val}highlightPicker();
+  },80);
+  if(type==='month')mT=tm;else dT=tm;
+}
+function highlightPicker(){
+  monthColumn.querySelectorAll('.picker-item').forEach(it=>{const a=parseInt(it.dataset.val)===pickerMonth;it.style.color=a?'var(--theme-color)':'';it.style.fontWeight=a?'600':''});
+  dayColumn.querySelectorAll('.picker-item').forEach(it=>{const a=parseInt(it.dataset.val)===pickerDay;it.style.color=a?'var(--theme-color)':'';it.style.fontWeight=a?'600':''});
+}
+function openPicker(){
+  pickerMonth=selectedMonth;pickerDay=selectedDay;buildPicker();pickerOverlay.classList.add('show');
+  setTimeout(()=>{scrollPicker(monthColumn,pickerMonth);scrollPicker(dayColumn,pickerDay);monthColumn.onscroll=()=>onPickerScroll(monthColumn,'month');dayColumn.onscroll=()=>onPickerScroll(dayColumn,'day')},50);
+}
+function closePicker(){pickerOverlay.classList.remove('show');monthColumn.onscroll=null;dayColumn.onscroll=null}
+
+birthdayTrigger.addEventListener('click',openPicker);
+$('pickerCancel').addEventListener('click',closePicker);
+$('pickerConfirm').addEventListener('click',()=>{
+  selectedMonth=pickerMonth;selectedDay=pickerDay;
+  birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
+  birthdayDisplay.style.color='var(--text)';closePicker();
+});
+pickerOverlay.addEventListener('click',e=>{if(e.target===pickerOverlay)closePicker()});
+
+$('rotateBlessing').addEventListener('click',()=>{
+  blessingInput.value=BLESSINGS[blessingIndex%BLESSINGS.length];blessingIndex++;
+  blessingInput.style.animation='none';void blessingInput.offsetWidth;blessingInput.style.animation='bounce .3s ease';
+});
+$('clearBlessing').addEventListener('click',()=>{blessingInput.value=''});
+
+function showToast(msg,dur=1500){toastEl.textContent=msg;toastEl.classList.add('show');setTimeout(()=>toastEl.classList.remove('show'),dur)}
+
+/* ========== IMAGE MANAGEMENT ========== */
+
+function renderImgGrid(){
+  imgGrid.innerHTML='';
+  uploadedImages.forEach((img,i)=>{
+    const div=document.createElement('div');div.className='img-item';div.draggable=true;div.dataset.idx=i;
+    div.innerHTML=`<img src="${img}" alt="图片${i+1}"><button class="img-remove" data-ridx="${i}">✕</button><div class="img-num">${i+1}</div>`;
+    imgGrid.appendChild(div);
+  });
+  if(uploadedImages.length<8){
+    const addDiv=document.createElement('div');addDiv.className='img-add';addDiv.textContent='+';addDiv.innerHTML='+<span>添加</span>';
+    addDiv.addEventListener('click',()=>imgFileInput.click());
+    imgGrid.appendChild(addDiv);
+  }
+  imgDragTip.style.display=uploadedImages.length>1?'block':'none';
+  imgUploadZone.style.display=uploadedImages.length>=8?'none':'block';
+  setupDrag();
+}
+
+function handleFiles(files){
+  const remain=8-uploadedImages.length;
+  if(remain<=0){showToast('最多上传8张图片');return}
+  const toProcess=Array.from(files).slice(0,remain);
+  let loaded=0;
+  toProcess.forEach(f=>{
+    if(!f.type.startsWith('image/'))return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      resizeImage(e.target.result,600,600,(resized)=>{
+        uploadedImages.push(resized);
+        loaded++;
+        if(loaded>=toProcess.length)renderImgGrid();
+      });
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function resizeImage(dataUrl,maxW,maxH,cb){
+  const img=new Image();
+  img.onload=()=>{
+    let w=img.width,h=img.height;
+    if(w>maxW){h*=maxW/w;w=maxW}
+    if(h>maxH){w*=maxH/h;h=maxH}
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg',0.85));
+  };
+  img.src=dataUrl;
+}
+
+imgUploadZone.addEventListener('click',()=>imgFileInput.click());
+imgFileInput.addEventListener('change',e=>{handleFiles(e.target.files);imgFileInput.value=''});
+
+imgGrid.addEventListener('click',e=>{
+  const rmBtn=e.target.closest('.img-remove');
+  if(rmBtn){
+    e.stopPropagation();
+    const idx=parseInt(rmBtn.dataset.ridx);
+    uploadedImages.splice(idx,1);
+    renderImgGrid();
+  }
+});
+
+/* Drag & drop reorder */
+let dragIdx=null,dragOverIdx=null;
+function setupDrag(){
+  const items=imgGrid.querySelectorAll('.img-item');
+  items.forEach(item=>{
+    item.addEventListener('dragstart',e=>{
+      dragIdx=parseInt(item.dataset.idx);
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    item.addEventListener('dragend',()=>{
+      item.classList.remove('dragging');
+      items.forEach(it=>it.classList.remove('drag-over'));
+      dragIdx=null;dragOverIdx=null;
+    });
+    item.addEventListener('dragover',e=>{
+      e.preventDefault();e.dataTransfer.dropEffect='move';
+      const overIdx=parseInt(item.dataset.idx);
+      if(overIdx!==dragOverIdx){
+        items.forEach(it=>it.classList.remove('drag-over'));
+        item.classList.add('drag-over');
+        dragOverIdx=overIdx;
+      }
+    });
+    item.addEventListener('drop',e=>{
+      e.preventDefault();
+      const toIdx=parseInt(item.dataset.idx);
+      if(dragIdx!==null&&dragIdx!==toIdx){
+        const moved=uploadedImages.splice(dragIdx,1)[0];
+        uploadedImages.splice(toIdx,0,moved);
+        renderImgGrid();
+      }
+    });
+    // Touch drag for mobile
+    let touchStartY=0,touchStartX=0,touchTimer=null,isDragging=false;
+    item.addEventListener('touchstart',e=>{
+      touchStartY=e.touches[0].clientY;touchStartX=e.touches[0].clientX;
+      touchTimer=setTimeout(()=>{
+        isDragging=true;dragIdx=parseInt(item.dataset.idx);
+        item.classList.add('dragging');
+      },400);
+    },{passive:true});
+    item.addEventListener('touchmove',e=>{
+      if(!isDragging){clearTimeout(touchTimer);return}
+      e.preventDefault();
+      const touch=e.touches[0];
+      const el=document.elementFromPoint(touch.clientX,touch.clientY);
+      if(el){
+        const overItem=el.closest('.img-item');
+        items.forEach(it=>it.classList.remove('drag-over'));
+        if(overItem&&overItem!==item){
+          overItem.classList.add('drag-over');
+          dragOverIdx=parseInt(overItem.dataset.idx);
+        }
+      }
+    },{passive:false});
+    item.addEventListener('touchend',()=>{
+      clearTimeout(touchTimer);
+      if(isDragging&&dragIdx!==null&&dragOverIdx!==null&&dragIdx!==dragOverIdx){
+        const moved=uploadedImages.splice(dragIdx,1)[0];
+        uploadedImages.splice(dragOverIdx,0,moved);
+        renderImgGrid();
+      }
+      isDragging=false;dragIdx=null;dragOverIdx=null;
+      items.forEach(it=>it.classList.remove('dragging','drag-over'));
+    });
+  });
+}
+
+/* Recommended images */
+$('useRecommended').addEventListener('click',()=>{
+  const grid=$('recommendedGrid');
+  const btn=$('useRecommended');
+  const btnChange=$('changeRecommended');
+  if(grid.classList.contains('show')){
+    grid.classList.remove('show');
+    btn.textContent='🖼️ 使用推荐图片';
+    btnChange.style.display='none';
+    return;
+  }
+  renderRecommended();
+  grid.classList.add('show');
+  btn.textContent='✕ 关闭推荐';
+  btnChange.style.display='inline-block';
+});
+
+$('changeRecommended').addEventListener('click',()=>{
+  recSetIdx=(recSetIdx+1)%RECOMMENDED_IMAGES.length;
+  renderRecommended();
+});
+
+function renderRecommended(){
+  const grid=$('recommendedGrid');grid.innerHTML='';
+  const imgs=RECOMMENDED_IMAGES[recSetIdx];
+  imgs.forEach((src,i)=>{
+    const div=document.createElement('div');div.className='recommended-item';
+    if(uploadedImages.includes(src))div.classList.add('selected');
+    div.innerHTML=`<img src="${src}" alt="推荐图片${i+1}">`;
+    div.addEventListener('click',()=>{
+      if(uploadedImages.length>=8){showToast('最多选择8张图片');return}
+      const idx=uploadedImages.indexOf(src);
+      if(idx>=0){
+        uploadedImages.splice(idx,1);
+        div.classList.remove('selected');
+      }else{
+        uploadedImages.push(src);
+        div.classList.add('selected');
+      }
+      renderImgGrid();
+    });
+    grid.appendChild(div);
+  });
+}
+
+/* Advanced toggle */
+$('advancedToggle').addEventListener('click',function(){
+  this.classList.toggle('open');
+  $('advancedContent').classList.toggle('open');
+});
+
+$('useDefaultText').addEventListener('change',function(){
+  const fields=$('customTextFields');
+  fields.style.opacity=this.checked?'0.4':'1';
+  fields.style.pointerEvents=this.checked?'none':'auto';
+});
+
+/* ========== CARD GENERATION ========== */
+
+function buildShareURL(){
+  const n=encodeURIComponent(nameInput.value.trim()),s=encodeURIComponent(senderInput.value.trim()),b=encodeURIComponent(blessingInput.value.trim());
+  return `${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
+}
+
+function generateCard(){
+  const name=nameInput.value.trim(),sender=senderInput.value.trim();
+  if(!name){showToast('请输入寿星昵称');nameInput.focus();return}
+  if(!sender){showToast('请输入发送人昵称');senderInput.focus();return}
+  if(!uploadedImages.length){showToast('请至少上传或选择一张图片');return}
+
+  const t=THEMES[currentTheme],blessing=blessingInput.value.trim()||BLESSINGS[blessingIndex%BLESSINGS.length];
+  const useDefault=$('useDefaultText').checked;
+  const texts=[];
+  if(useDefault){
+    for(let i=0;i<uploadedImages.length;i++) texts.push(DEFAULT_TEXTS[i%DEFAULT_TEXTS.length]);
+    texts.push(DEFAULT_TEXTS[8]||'友谊长存！');
+  }else{
+    for(let i=0;i<8;i++){
+      const el=$('blessing'+(i+1));
+      texts.push(el&&el.value.trim()?el.value.trim():(i<uploadedImages.length?DEFAULT_TEXTS[i%DEFAULT_TEXTS.length]:''));
+    }
+    const el9=$('blessing9');
+    texts.push(el9&&el9.value.trim()?el9.value.trim():'友谊长存！');
+  }
+
+  const canvas=cardCanvas,ctx=canvas.getContext('2d');
+  const W=600;
+  const imgCount=uploadedImages.length;
+  const imgH=400;
+  const textH=60;
+  const headerH=160;
+  const footerH=200;
+  const H=headerH+imgCount*(imgH+textH)+footerH;
+  canvas.width=W;canvas.height=H;
+
+  // Background gradient
+  const bg=ctx.createLinearGradient(0,0,W*0.5,H);
+  bg.addColorStop(0,t.cg[0]+'dd');bg.addColorStop(0.5,t.cg[1]+'cc');bg.addColorStop(1,t.cg[2]+'ee');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // Decorative circles
+  for(let i=0;i<20;i++){ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,Math.random()*40+8,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.1+0.03})`;ctx.fill()}
+  // Stars
+  for(let i=0;i<30;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.4+0.2})`;drawStar(ctx,Math.random()*W,Math.random()*headerH,Math.random()*3+1)}
+
+  // Header lines
+  ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(40,50);ctx.lineTo(W-40,50);ctx.stroke();
+
+  // Header text
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='40px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';
+  ctx.shadowColor='rgba(0,0,0,0.12)';ctx.shadowBlur=12;ctx.shadowOffsetY=4;
+  ctx.fillText('🎂 生日快乐！',W/2,95);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  ctx.font='28px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';ctx.fillText(`致：${name}`,W/2,140);
+
+  // Draw images and texts
+  let y=headerH;
+  const imgPadding=40;
+  const imgDrawW=W-imgPadding*2;
+
+  let imagesLoaded=0;
+  const totalImages=imgCount;
+  const imgEls=[];
+
+  function drawAfterImagesLoad(){
+    for(let i=0;i<imgCount;i++){
+      // Text above image
+      if(texts[i]){
+        ctx.font='22px "ZCOOL KuaiLe",cursive';ctx.fillStyle='rgba(255,255,255,0.95)';
+        ctx.shadowColor='rgba(0,0,0,0.1)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;
+        ctx.fillText(texts[i],W/2,y+30);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+      }
+
+      // Image
+      const img=imgEls[i];
+      if(img){
+        ctx.save();
+        roundRect(ctx,imgPadding,y+50,imgDrawW,imgH-80,12);ctx.clip();
+        const scale=Math.max(imgDrawW/img.width,(imgH-80)/img.height);
+        const dw=img.width*scale,dh=img.height*scale;
+        ctx.drawImage(img,imgPadding+(imgDrawW-dw)/2,y+50+(imgH-80-dh)/2,dw,dh);
+        ctx.restore();
+        // Image border
+        ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;
+        roundRect(ctx,imgPadding,y+50,imgDrawW,imgH-80,12);ctx.stroke();
+      }
+      y+=imgH+textH;
+    }
+
+    // Footer text (last blessing)
+    if(texts[imgCount]){
+      ctx.font='20px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.fillText(texts[imgCount],W/2,y+20);
+    }
+
+    // Sender
+    ctx.font='16px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.65)';
+    ctx.fillText(`—— 来自 ${sender} 的祝福`,W/2,y+55);
+
+    // Bottom line
+    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(40,y+80);ctx.lineTo(W-40,y+80);ctx.stroke();
+
+    // QR Code
+    const shareURL=buildShareURL();
+    drawQRCodeOnCanvas(ctx,shareURL,W,H,t,y+90);
+
+    ctx.font='12px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';
+    ctx.fillText('Happy Everyday · 扫码打开给Ta惊喜 🎉',W/2,H-25);
+
+    resultSection.classList.add('show');resultSection.scrollIntoView({behavior:'smooth',block:'start'});
+    generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme);
+  }
+
+  // Load all images
+  uploadedImages.forEach((src,i)=>{
+    const img=new Image();img.crossOrigin='anonymous';
+    img.onload=()=>{
+      imgEls[i]=img;imagesLoaded++;
+      if(imagesLoaded>=totalImages)drawAfterImagesLoad();
+    };
+    img.onerror=()=>{
+      imgEls[i]=null;imagesLoaded++;
+      if(imagesLoaded>=totalImages)drawAfterImagesLoad();
+    };
+    img.src=src;
+  });
+}
+
+function drawQRCodeOnCanvas(ctx,url,W,H,t,qrY){
+  try{const qr=qrcode(0,'L');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cs=Math.floor(100/sz),qs=sz*cs,cx=W/2,cy=qrY+70;
+  ctx.fillStyle='rgba(255,255,255,0.9)';roundRect(ctx,cx-qs/2-12,cy-qs/2-12,qs+24,qs+24,10);ctx.fill();
+  for(let r=0;r<sz;r++)for(let c=0;c<sz;c++)if(qr.isDark(r,c)){ctx.fillStyle=t.cg[2];ctx.fillRect(cx-qs/2+c*cs,cy-qs/2+r*cs,cs,cs)}
+  }catch(e){}
+}
+function generateQRCode(url){
+  const el=$('qrcodeEl');el.innerHTML='';
+  try{const qr=qrcode(0,'M');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cl=Math.max(4,Math.floor(200/sz));
+  const c=document.createElement('canvas');c.width=sz*cl;c.height=sz*cl;const ctx=c.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+  for(let r=0;r<sz;r++)for(let co=0;co<sz;co++)if(qr.isDark(r,co)){ctx.fillStyle=THEMES[currentTheme].cg[1];ctx.fillRect(co*cl,r*cl,cl,cl)}
+  const img=document.createElement('img');
+  img.src=c.toDataURL('image/png');
+  img.style.width='200px';img.style.height='200px';img.style.borderRadius='8px';
+  el.appendChild(img);
+  }catch(e){el.innerHTML='<p style="color:#999;font-size:12px">二维码生成失败</p>'}
+}
+function drawStar(ctx,x,y,r){ctx.beginPath();for(let i=0;i<5;i++){const a=Math.PI*2*i/5-Math.PI/2,ax=x+Math.cos(a)*r,ay=y+Math.sin(a)*r,b=a+Math.PI/5,bx=x+Math.cos(b)*r*0.4,by=y+Math.sin(b)*r*0.4;if(i===0)ctx.moveTo(ax,ay);else ctx.lineTo(ax,ay);ctx.lineTo(bx,by)}ctx.closePath();ctx.fill()}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath()}
+
+generateBtn.addEventListener('click',generateCard);
+downloadBtn.addEventListener('click',()=>{
+  const l=document.createElement('a');l.download=`生日贺卡_${nameInput.value.trim()||'好友'}_图片版.png`;
+  l.href=cardCanvas.toDataURL('image/png');l.click();showToast('📥 图片已开始下载')
+});
+copyBtn.addEventListener('click',()=>{
+  const url=buildShareURL();
+  navigator.clipboard.writeText(url).then(()=>showToast('🔗 链接已复制到剪贴板')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);showToast('🔗 链接已复制到剪贴板');
+  });
+});
+
+function getHistory(){try{return JSON.parse(localStorage.getItem('bd_pic_history')||'[]')}catch{return[]}}
+function saveHistory(name,sender,month,day,blessing,theme){
+  const l=getHistory();l.unshift({name,sender,month,day,blessing,theme,pic:true,time:Date.now()});
+  if(l.length>20)l.length=20;localStorage.setItem('bd_pic_history',JSON.stringify(l));
+}
+function renderHistory(){
+  const l=getHistory();if(!l.length){historyList.innerHTML='<div class="history-empty">暂无记录</div>';return}
+  historyList.innerHTML=l.map((it,i)=>`<div class="history-item" data-idx="${i}"><div class="info"><div class="name">📸 ${it.name}</div><div class="date">${it.month}月${it.day}日 · 来自 ${it.sender}</div></div><button class="del-btn" data-delidx="${i}">✕</button></div>`).join('');
+  historyList.querySelectorAll('.history-item').forEach(el=>{el.addEventListener('click',e=>{
+    if(e.target.classList.contains('del-btn')){e.stopPropagation();const i=parseInt(e.target.dataset.delidx);const l=getHistory();l.splice(i,1);localStorage.setItem('bd_pic_history',JSON.stringify(l));renderHistory();return}
+    const it=getHistory()[parseInt(el.dataset.idx)];if(!it)return;nameInput.value=it.name;senderInput.value=it.sender;selectedMonth=it.month;selectedDay=it.day;
+    birthdayDisplay.textContent=`${String(it.month).padStart(2,'0')}月${String(it.day).padStart(2,'0')}日`;birthdayDisplay.style.color='var(--text)';
+    blessingInput.value=it.blessing||'';if(it.theme!==undefined)selectTheme(it.theme);historyPanel.classList.remove('show');window.scrollTo({top:0,behavior:'smooth'});
+  })});
+}
+historyBtn.addEventListener('click',()=>{renderHistory();historyPanel.classList.add('show')});
+historyClose.addEventListener('click',()=>historyPanel.classList.remove('show'));
+historyPanel.addEventListener('click',e=>{if(e.target===historyPanel)historyPanel.classList.remove('show')});
+
+/* ============================= */
+/* ====== DISPLAY MODE ========= */
+/* ============================= */
+
+let displayAnim=null,audioCtx=null,musicPlaying=false;
+let displayData={};
+
+function startDisplayMode(){
+  displayData={
+    name:urlParams.get('name')||'',sender:urlParams.get('sender')||'',
+    month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
+    themeIdx:parseInt(urlParams.get('theme'))||0,blessing:urlParams.get('blessing')||'生日快乐！',
+    images:urlParams.get('images')?JSON.parse(decodeURIComponent(urlParams.get('images'))):[],
+    texts:urlParams.get('texts')?JSON.parse(decodeURIComponent(urlParams.get('texts'))):[]
+  };
+  const t=THEMES[displayData.themeIdx]||THEMES[0];selectTheme(displayData.themeIdx);
+
+  $('editMode').style.display='none';
+  document.querySelector('.history-btn').style.display='none';
+  document.querySelector('.bg-decor').style.display='none';
+  $('displayMode').classList.add('show');
+
+  // Build display phases dynamically
+  const scroll=$('dScroll');scroll.innerHTML='';
+  const phases=[];
+
+  // Phase 1: Hi name
+  const p1=document.createElement('div');p1.className='d-phase';
+  p1.innerHTML=`<div class="d-phase-title" style="font-size:clamp(36px,10vw,72px);letter-spacing:4px">Hi</div><div class="d-phase-title" style="font-size:clamp(48px,14vw,100px);letter-spacing:6px;margin-top:10px">${displayData.name}</div><div class="d-swipe-hint">↑ 上滑继续 ↑</div>`;
+  scroll.appendChild(p1);phases.push(p1);
+
+  // Phase 2: 生日快乐
+  const p2=document.createElement('div');p2.className='d-phase';
+  p2.innerHTML=`<div class="d-phase-title" style="font-size:clamp(56px,16vw,120px);letter-spacing:12px">生日快乐</div><div class="d-swipe-hint">↑ 上滑继续 ↑</div>`;
+  scroll.appendChild(p2);phases.push(p2);
+
+  // Phase 3: Blessing
+  const p3=document.createElement('div');p3.className='d-phase';
+  p3.innerHTML=`<div class="d-phase-title">🎂 生日快乐！</div><div class="d-phase-title" style="font-size:clamp(22px,6vw,38px)">致：${displayData.name}</div><div class="d-phase-title" style="font-size:clamp(14px,3.5vw,20px);color:rgba(255,255,255,0.75)">${displayData.month}月${displayData.day}日</div><div style="width:60px;height:2px;background:rgba(255,255,255,0.3);margin:16px auto;opacity:0" class="p3-div"></div><div class="d-phase-text">${displayData.blessing}</div><div class="d-phase-text" style="font-size:clamp(13px,3vw,17px);color:rgba(255,255,255,0.6);margin-top:24px">—— 来自 ${displayData.sender} 的祝福</div><div class="d-swipe-hint">↑ 上滑继续 ↑</div>`;
+  scroll.appendChild(p3);phases.push(p3);
+
+  // Image phases
+  if(displayData.images&&displayData.images.length){
+    displayData.images.forEach((src,i)=>{
+      const pi=document.createElement('div');pi.className='d-phase';
+      const txt=displayData.texts&&displayData.texts[i]?displayData.texts[i]:'';
+      pi.innerHTML=`${txt?`<div class="d-phase-title">${txt}</div>`:''}<img class="d-phase-img" src="${src}" alt="图片${i+1}">${i===displayData.images.length-1&&displayData.texts&&displayData.texts[displayData.images.length]?`<div class="d-phase-text">${displayData.texts[displayData.images.length]}</div>`:''}`;
+      scroll.appendChild(pi);phases.push(pi);
+    });
+  }
+
+  $('displayReplay').classList.remove('show');$('displayReplay').style.display='none';
+
+  // Canvas background
+  const canvas=$('displayCanvas'),ctx=canvas.getContext('2d');
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  let W,H;
+  function resize(){W=window.innerWidth;H=window.innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+  resize();window.addEventListener('resize',resize);
+
+  // Sparkles
+  const sparkles=[];
+  class Sparkle{
+    constructor(){this.reset()}
+    reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.size=Math.random()*4+1;this.opacity=Math.random()*0.6+0.2;this.twinkle=Math.random()*Math.PI*2;this.twinkleSpeed=Math.random()*0.06+0.02;this.color=['#fff','#ffe4ec','#ffd1dc','#fff0f5','#fffacd','#ffe4e1'][Math.floor(Math.random()*6)];this.vy=Math.random()*0.3+0.1;this.vx=(Math.random()-0.5)*0.3}
+    update(){this.y+=this.vy;this.x+=this.vx;this.twinkle+=this.twinkleSpeed;this.opacity=0.2+Math.sin(this.twinkle)*0.4;if(this.y>H+10||this.x<-10||this.x>W+10){this.reset();this.y=-10}}
+    draw(ctx){ctx.save();ctx.globalAlpha=Math.max(0,this.opacity);ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(this.x,this.y,this.size*0.6,0,Math.PI*2);ctx.fill();ctx.restore()}
+  }
+  for(let i=0;i<60;i++)sparkles.push(new Sparkle());
+
+  // Phase scroll detection
+  let currentPhase=0;
+  const phaseAnimated={};
+
+  function animatePhase(num){
+    if(phaseAnimated[num])return;
+    phaseAnimated[num]=true;
+    const phase=phases[num-1];
+    if(!phase)return;
+    const els=phase.querySelectorAll('.d-phase-title,.d-phase-img,.d-phase-text,.p3-div');
+    els.forEach((el,i)=>{
+      setTimeout(()=>{el.style.cssText+=';animation:popIn 0.7s ease forwards'},(i+1)*250);
+    });
+    if(num===phases.length){
+      setTimeout(()=>{
+        $('displayReplay').style.display='block';
+        setTimeout(()=>$('displayReplay').classList.add('show'),100);
+      },1500);
+    }
+  }
+
+  scroll.addEventListener('scroll',()=>{
+    const scrollY=scroll.scrollTop;
+    const phaseH=window.innerHeight;
+    const newPhase=Math.round(scrollY/phaseH)+1;
+    if(newPhase!==currentPhase&&newPhase>=1&&newPhase<=phases.length){
+      currentPhase=newPhase;animatePhase(newPhase);
+    }
+  },{passive:true});
+
+  scroll.scrollTop=0;currentPhase=1;
+  setTimeout(()=>animatePhase(1),300);
+
+  // Animation loop
+  function animate(){
+    ctx.clearRect(0,0,W,H);
+    const bg=ctx.createLinearGradient(0,0,W*0.3,H);
+    bg.addColorStop(0,t.cg[2]+'ee');bg.addColorStop(0.5,t.cg[1]+'dd');bg.addColorStop(1,t.cg[0]+'cc');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    const glow=ctx.createRadialGradient(W/2,H*0.4,0,W/2,H*0.4,W*0.6);
+    glow.addColorStop(0,'rgba(255,255,255,0.08)');glow.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+    for(const s of sparkles){s.update();s.draw(ctx)}
+    displayAnim=requestAnimationFrame(animate);
+  }
+
+  function tryAutoPlay(){startMusicLoop();document.removeEventListener('click',tryAutoPlay);document.removeEventListener('touchstart',tryAutoPlay)}
+  if(!startMusicLoop()){document.addEventListener('click',tryAutoPlay,{once:true});document.addEventListener('touchstart',tryAutoPlay,{once:true})}
+  animate();
+}
+
+$('displayReplay').addEventListener('click',()=>{
+  if(displayAnim)cancelAnimationFrame(displayAnim);stopMusicLoop();
+  const se=$('dScroll');if(se)se.scrollTop=0;startDisplayMode();
+});
+
+// Music
+const NOTES=[262,262,294,262,349,330,262,262,294,262,392,349,262,262,523,440,349,330,294,466,466,440,349,392,349];
+const DURS=[0.3,0.15,0.45,0.45,0.45,0.9,0.3,0.15,0.45,0.45,0.45,0.9,0.3,0.15,0.45,0.45,0.45,0.45,0.9,0.3,0.15,0.45,0.45,0.45,0.9];
+let musicLoopTimer=null;
+function getTotalDuration(){let t=0;DURS.forEach(d=>t+=d);return t}
+const TOTAL_DUR=getTotalDuration();
+
+function playOneCycle(){
+  if(!musicPlaying||!audioCtx)return;if(audioCtx.state==='suspended'){audioCtx.resume()}
+  let time=audioCtx.currentTime+0.1;
+  NOTES.forEach((freq,i)=>{
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.value=freq;
+    g.gain.setValueAtTime(0.12,time);g.gain.exponentialRampToValueAtTime(0.01,time+DURS[i]*0.9);
+    o.connect(g);g.connect(audioCtx.destination);o.start(time);o.stop(time+DURS[i]);time+=DURS[i];
+  });
+  musicLoopTimer=setTimeout(()=>{if(musicPlaying)playOneCycle()},TOTAL_DUR*1000+200);
+}
+function startMusicLoop(){
+  if(musicPlaying)return false;
+  try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();musicPlaying=true;$('displayMusic').classList.add('playing');playOneCycle();return true}catch{return false}
+}
+function stopMusicLoop(){musicPlaying=false;clearTimeout(musicLoopTimer);if(audioCtx){try{audioCtx.close()}catch{};audioCtx=null}$('displayMusic').classList.remove('playing')}
+$('displayMusic').addEventListener('click',function(e){e.stopPropagation();if(musicPlaying)stopMusicLoop();else startMusicLoop()});
+
+/* ===== INIT ===== */
+if(isDisplayMode){startDisplayMode()}
+else{
+  initThemes();selectTheme(0);
+  const today=new Date();selectedMonth=today.getMonth()+1;selectedDay=today.getDate();
+  pickerMonth=selectedMonth;pickerDay=selectedDay;
+  birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
+  birthdayDisplay.style.color='var(--text)';
+  renderImgGrid();
+}
+
+})();
+</script>
+</body>
+</html>
