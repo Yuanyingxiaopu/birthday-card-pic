@@ -478,7 +478,9 @@ const imgGrid=$('imgGrid'),imgUploadZone=$('imgUploadZone'),imgFileInput=$('imgF
 const imgDragTip=$('imgDragTip');
 
 const urlParams=new URLSearchParams(location.search);
-const isDisplayMode=urlParams.has('token')||(urlParams.has('name')&&urlParams.has('sender'));
+const tokenParam=urlParams.get('token'); // token=xxx → editor mode (authorization)
+const cardParam=urlParams.get('card');   // card=xxx → display mode (view card)
+const isDisplayMode=!!cardParam||(urlParams.has('name')&&urlParams.has('sender'));
 
 /* ========== TOKEN SYSTEM (Cloud + Local) ========== */
 const CLOUD_API='https://jsonblob.com/api/jsonBlob';
@@ -845,9 +847,8 @@ $('useDefaultText').addEventListener('change',function(){
 let currentToken='';
 function buildShareURL(){
   if(currentToken){
-    return `${location.origin}${location.pathname}?token=${currentToken}`;
+    return `${location.origin}${location.pathname}?card=${currentToken}`;
   }
-  // Fallback: legacy URL mode
   const n=encodeURIComponent(nameInput.value.trim()),s=encodeURIComponent(senderInput.value.trim()),b=encodeURIComponent(blessingInput.value.trim());
   return `${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
 }
@@ -1036,7 +1037,7 @@ function saveHistory(name,sender,month,day,blessing,theme,token){
 function renderHistory(){
   const l=getHistory();if(!l.length){historyList.innerHTML='<div class="history-empty">暂无记录，快去生成你的第一张贺卡吧！</div>';return}
   historyList.innerHTML=l.map((it,i)=>{
-    const tokenUrl=it.token?`${location.origin}${location.pathname}?token=${it.token}`:'';
+    const tokenUrl=it.token?`${location.origin}${location.pathname}?card=${it.token}`:'';
     return `<div class="history-item" data-idx="${i}">
       <div class="info">
         <div class="name">📸 ${it.name}</div>
@@ -1080,16 +1081,14 @@ let displayAnim=null,audioCtx=null,musicPlaying=false;
 let displayData={};
 
 function startDisplayMode(){
-  // Try token-based data first
-  const tokenParam=urlParams.get('token');
-  if(tokenParam){
-    // Show loading overlay
+  // card=xxx → load card data from cloud and display
+  if(cardParam){
     const loader=document.createElement('div');
     loader.id='loadingOverlay';
     loader.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff6b9d,#ff8fab);color:#fff;font-family:sans-serif;text-align:center;padding:40px';
     loader.innerHTML='<div><div style="font-size:48px;margin-bottom:20px">⏳</div><h2 style="font-size:20px">正在加载贺卡数据...</h2><p style="opacity:0.7;font-size:13px;margin-top:8px">请稍候</p></div>';
     document.body.appendChild(loader);
-    getCardData(tokenParam).then(tokenData=>{
+    getCardData(cardParam).then(tokenData=>{
       const ol=document.getElementById('loadingOverlay');if(ol)ol.remove();
       if(!tokenData){
         document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#ff6b9d,#ff8fab);color:#fff;font-family:sans-serif;text-align:center;padding:40px"><div><div style="font-size:64px;margin-bottom:20px">😢</div><h2 style="font-size:24px;margin-bottom:12px">链接已过期或无效</h2><p style="opacity:0.8;font-size:14px">请确认链接是否正确<br>或重新生成一张贺卡</p></div></div>';
@@ -1308,8 +1307,19 @@ function stopMusicLoop(){musicPlaying=false;clearTimeout(musicLoopTimer);if(audi
 $('displayMusic').addEventListener('click',function(e){e.stopPropagation();if(musicPlaying)stopMusicLoop();else startMusicLoop()});
 
 /* ===== INIT ===== */
+// Valid access tokens (add/remove tokens here to control access)
+const VALID_TOKENS=['birthday2026','happy612','crayonshinchan'];
+
 if(isDisplayMode){startDisplayMode()}
 else{
+  // Editor mode
+  if(tokenParam){
+    // Token authorization gate
+    if(!VALID_TOKENS.includes(tokenParam)){
+      document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#ff6b9d,#ff8fab);color:#fff;font-family:sans-serif;text-align:center;padding:40px"><div><div style="font-size:64px;margin-bottom:20px">🔒</div><h2 style="font-size:24px;margin-bottom:12px">授权凭证无效</h2><p style="opacity:0.8;font-size:14px">请联系管理员获取有效链接</p></div></div>';
+      throw new Error('Invalid token');
+    }
+  }
   initThemes();selectTheme(0);
   const today=new Date();selectedMonth=today.getMonth()+1;selectedDay=today.getDate();
   pickerMonth=selectedMonth;pickerDay=selectedDay;
