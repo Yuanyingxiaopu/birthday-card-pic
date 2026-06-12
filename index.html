@@ -480,44 +480,76 @@ const imgDragTip=$('imgDragTip');
 const urlParams=new URLSearchParams(location.search);
 const isDisplayMode=urlParams.has('token')||(urlParams.has('name')&&urlParams.has('sender'));
 
-/* ========== TOKEN SYSTEM ========== */
+/* ========== TOKEN SYSTEM (Cloud + Local) ========== */
+const CLOUD_API='https://jsonblob.com/api/jsonBlob';
+
 function generateToken(){
   const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const seg=()=>Array.from({length:8},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
   return seg()+'-'+seg()+'-'+seg();
 }
-function saveCardData(token,data){
+
+// Save to cloud (primary) + localStorage (backup)
+async function saveCardData(token,data){
+  const payload={...data,token,createdAt:Date.now()};
+  // Save to localStorage as backup
   try{
-    const store=getCardStore();
-    store[token]={...data,createdAt:Date.now()};
+    const store=getCardStore();store[token]=payload;
     localStorage.setItem('bd_cards',JSON.stringify(store));
-    return true;
+  }catch{cleanupOldCards();try{const store=getCardStore();store[token]=payload;localStorage.setItem('bd_cards',JSON.stringify(store))}catch{}}
+  // Save to cloud
+  try{
+    const resp=await fetch(CLOUD_API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
+    if(resp.ok){
+      const blobId=resp.headers.get('Location')||resp.headers.get('location');
+      if(blobId){
+        const cloudMap=getCloudMap();cloudMap[token]=blobId.replace(/.*\//,'');
+        localStorage.setItem('bd_cloud_map',JSON.stringify(cloudMap));
+        return true;
+      }
+    }
+    console.warn('Cloud save failed, local backup only');
+    return true; // local backup still works
   }catch(e){
-    // localStorage full, try cleanup
-    cleanupOldCards();
-    try{
-      const store=getCardStore();
-      store[token]={...data,createdAt:Date.now()};
-      localStorage.setItem('bd_cards',JSON.stringify(store));
-      return true;
-    }catch(e2){console.warn('Storage full:',e2);return false}
+    console.warn('Cloud save error:',e);
+    return true; // local backup still works
   }
 }
-function getCardData(token){
+
+// Get card data: try cloud first, fallback to localStorage
+async function getCardData(token){
+  // Try cloud
+  const cloudMap=getCloudMap();
+  const blobId=cloudMap[token];
+  if(blobId){
+    try{
+      const resp=await fetch(CLOUD_API+'/'+blobId,{headers:{'Accept':'application/json'}});
+      if(resp.ok){const data=await resp.json();return data}
+    }catch{}
+  }
+  // Fallback: localStorage
   const store=getCardStore();
   return store[token]||null;
 }
+
 function getCardStore(){
   try{return JSON.parse(localStorage.getItem('bd_cards')||'{}')}catch{return{}}
+}
+function getCloudMap(){
+  try{return JSON.parse(localStorage.getItem('bd_cloud_map')||'{}')}catch{return{}}
 }
 function deleteCardData(token){
   const store=getCardStore();delete store[token];
   localStorage.setItem('bd_cards',JSON.stringify(store));
+  const cloudMap=getCloudMap();const blobId=cloudMap[token];
+  if(blobId){
+    delete cloudMap[token];localStorage.setItem('bd_cloud_map',JSON.stringify(cloudMap));
+    fetch(CLOUD_API+'/'+blobId,{method:'DELETE'}).catch(()=>{});
+  }
 }
 function cleanupOldCards(){
   const store=getCardStore();
   const entries=Object.entries(store).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
-  // Remove oldest 3 entries
   for(let i=0;i<3&&i<entries.length;i++)delete store[entries[i][0]];
   localStorage.setItem('bd_cards',JSON.stringify(store));
 }
@@ -926,17 +958,17 @@ function generateCard(){
       ctx.fillText('Happy Everyday · 扫码打开给Ta惊喜 🎉',W/2,H-25);
       resultSection.classList.add('show');resultSection.scrollIntoView({behavior:'smooth',block:'start'});
       generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme,currentToken);
-      // Save card data with token to localStorage
-      const saved=saveCardData(currentToken,{
+      // Save card data with token to cloud + local
+      showToast('☁️ 正在保存到云端...');
+      saveCardData(currentToken,{
         name,sender,month:selectedMonth,day:selectedDay,
         theme:currentTheme,blessing,
         images:uploadedImages,texts:shareTexts,
         token:currentToken
+      }).then(ok=>{
+        if(ok)showToast('✅ 贺卡已保存，链接可分享给他人',2000);
+        else{showToast('⚠️ 云端保存失败，仅本地可用',3000);currentToken=''}
       });
-      if(!saved){
-        showToast('⚠️ 存储空间不足，链接将使用传统模式',3000);
-        currentToken='';
-      }
     }
 
     uploadedImages.forEach((src,i)=>{
@@ -1050,23 +1082,30 @@ let displayData={};
 function startDisplayMode(){
   // Try token-based data first
   const tokenParam=urlParams.get('token');
-  let tokenData=null;
   if(tokenParam){
-    tokenData=getCardData(tokenParam);
-    if(!tokenData){
-      // Token not found in this browser — show error
-      document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#ff6b9d,#ff8fab);color:#fff;font-family:sans-serif;text-align:center;padding:40px"><div><div style="font-size:64px;margin-bottom:20px">😢</div><h2 style="font-size:24px;margin-bottom:12px">链接已过期或无效</h2><p style="opacity:0.8;font-size:14px">请在创建贺卡的设备上打开此链接<br>或重新生成一张贺卡</p></div></div>';
-      return;
-    }
+    // Show loading overlay
+    const loader=document.createElement('div');
+    loader.id='loadingOverlay';
+    loader.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff6b9d,#ff8fab);color:#fff;font-family:sans-serif;text-align:center;padding:40px';
+    loader.innerHTML='<div><div style="font-size:48px;margin-bottom:20px">⏳</div><h2 style="font-size:20px">正在加载贺卡数据...</h2><p style="opacity:0.7;font-size:13px;margin-top:8px">请稍候</p></div>';
+    document.body.appendChild(loader);
+    getCardData(tokenParam).then(tokenData=>{
+      const ol=document.getElementById('loadingOverlay');if(ol)ol.remove();
+      if(!tokenData){
+        document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#ff6b9d,#ff8fab);color:#fff;font-family:sans-serif;text-align:center;padding:40px"><div><div style="font-size:64px;margin-bottom:20px">😢</div><h2 style="font-size:24px;margin-bottom:12px">链接已过期或无效</h2><p style="opacity:0.8;font-size:14px">请确认链接是否正确<br>或重新生成一张贺卡</p></div></div>';
+        return;
+      }
+      displayData={name:tokenData.name||'',sender:tokenData.sender||'',
+        month:tokenData.month||1,day:tokenData.day||1,
+        themeIdx:tokenData.theme||0,blessing:tokenData.blessing||'生日快乐！',
+        images:tokenData.images||[],texts:tokenData.texts||[]
+      };
+      renderDisplay();
+    });
+    return;
   }
-
-  displayData=tokenData?{
-    name:tokenData.name||'',sender:tokenData.sender||'',
-    month:tokenData.month||1,day:tokenData.day||1,
-    themeIdx:tokenData.theme||0,blessing:tokenData.blessing||'生日快乐！',
-    images:tokenData.images||[],
-    texts:tokenData.texts||[]
-  }:{
+  // Legacy URL mode (no token)
+  displayData={
     name:urlParams.get('name')||'',sender:urlParams.get('sender')||'',
     month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
     themeIdx:parseInt(urlParams.get('theme'))||0,blessing:urlParams.get('blessing')||'生日快乐！',
@@ -1087,6 +1126,10 @@ function startDisplayMode(){
       }catch(e){return[]}
     })()
   };
+  renderDisplay();
+}
+
+function renderDisplay(){
   const t=THEMES[displayData.themeIdx]||THEMES[0];selectTheme(displayData.themeIdx);
 
   $('editMode').style.display='none';
