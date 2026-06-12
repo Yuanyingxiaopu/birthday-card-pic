@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/solarlunar@2.0.7/dist/solarlunar.min.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -286,6 +287,7 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
         <span id="birthdayDisplay" style="color:#bbb">选择日期</span>
         <span class="arrow">▼</span>
       </div>
+      <div id="lunarDisplay" style="font-size:12px;color:#999;margin-top:4px;min-height:18px;padding-left:2px"></div>
     </div>
     <div class="form-group">
       <label>发送人昵称 <span class="req">*</span></label>
@@ -482,6 +484,17 @@ const tokenParam=urlParams.get('token'); // token=xxx → editor mode (authoriza
 const cardParam=urlParams.get('card');   // card=xxx → display mode (view card)
 const isDisplayMode=!!cardParam||(urlParams.has('name')&&urlParams.has('sender'));
 
+/* ========== LUNAR CALENDAR ========== */
+function getLunarInfo(month,day){
+  const year=new Date().getFullYear();
+  if(typeof solarLunar==='undefined')return{month:1,day:1,monthCn:'正月',dayCn:'初一',password:'0101'};
+  const r=solarLunar.solar2lunar(year,month,day);
+  if(r===-1)return{month:1,day:1,monthCn:'正月',dayCn:'初一',password:'0101'};
+  const lm=r.lMonth||1,ld=r.lDay||1;
+  return{month:lm,day:ld,monthCn:r.monthCn||'',dayCn:r.dayCn||'',
+    password:String(lm).padStart(2,'0')+String(ld).padStart(2,'0')};
+}
+
 /* ========== TOKEN SYSTEM (Cloud + Local) ========== */
 const CLOUD_API='https://jsonblob.com/api/jsonBlob';
 
@@ -627,7 +640,10 @@ $('pickerCancel').addEventListener('click',closePicker);
 $('pickerConfirm').addEventListener('click',()=>{
   selectedMonth=pickerMonth;selectedDay=pickerDay;
   birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
-  birthdayDisplay.style.color='var(--text)';closePicker();
+  birthdayDisplay.style.color='var(--text)';
+  const lu=getLunarInfo(selectedMonth,selectedDay);
+  $('lunarDisplay').textContent=`农历：${lu.monthCn}${lu.dayCn}`;
+  closePicker();
 });
 pickerOverlay.addEventListener('click',e=>{if(e.target===pickerOverlay)closePicker()});
 
@@ -961,11 +977,14 @@ function generateCard(){
       generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme,currentToken);
       // Save card data with token to cloud + local
       showToast('☁️ 正在保存到云端...');
+      const lunarInfo=getLunarInfo(selectedMonth,selectedDay);
       saveCardData(currentToken,{
         name,sender,month:selectedMonth,day:selectedDay,
         theme:currentTheme,blessing,
         images:uploadedImages,texts:shareTexts,
-        token:currentToken
+        token:currentToken,
+        lunarPassword:lunarInfo.password,
+        lunarMonthCn:lunarInfo.monthCn,lunarDayCn:lunarInfo.dayCn
       }).then(ok=>{
         if(ok)showToast('✅ 贺卡已保存，链接可分享给他人',2000);
         else{showToast('⚠️ 云端保存失败，仅本地可用',3000);currentToken=''}
@@ -1066,6 +1085,7 @@ function renderHistory(){
     }
     const it=getHistory()[parseInt(el.dataset.idx)];if(!it)return;nameInput.value=it.name;senderInput.value=it.sender;selectedMonth=it.month;selectedDay=it.day;
     birthdayDisplay.textContent=`${String(it.month).padStart(2,'0')}月${String(it.day).padStart(2,'0')}日`;birthdayDisplay.style.color='var(--text)';
+    const luH=getLunarInfo(it.month,it.day);$('lunarDisplay').textContent=`农历：${luH.monthCn}${luH.dayCn}`;
     blessingInput.value=it.blessing||'';if(it.theme!==undefined)selectTheme(it.theme);historyPanel.classList.remove('show');window.scrollTo({top:0,behavior:'smooth'});
   })});
 }
@@ -1099,11 +1119,16 @@ function startDisplayMode(){
         themeIdx:tokenData.theme||0,blessing:tokenData.blessing||'生日快乐！',
         images:tokenData.images||[],texts:tokenData.texts||[]
       };
-      renderDisplay();
+      // Password gate: require lunar date password
+      if(tokenData.lunarPassword){
+        showPasswordGate(tokenData.lunarPassword);
+      }else{
+        renderDisplay();
+      }
     });
     return;
   }
-  // Legacy URL mode (no token)
+  // Legacy URL mode (no token) — no password gate
   displayData={
     name:urlParams.get('name')||'',sender:urlParams.get('sender')||'',
     month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
@@ -1126,6 +1151,60 @@ function startDisplayMode(){
     })()
   };
   renderDisplay();
+}
+
+function showPasswordGate(correctPassword){
+  const gate=document.createElement('div');
+  gate.id='passwordGate';
+  gate.style.cssText='position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff6b9d 0%,#ff8fab 40%,#ffc2d4 100%);font-family:"Noto Sans SC",sans-serif;text-align:center;padding:24px';
+  gate.innerHTML=`
+    <div style="background:rgba(255,255,255,0.95);border-radius:24px;padding:40px 32px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.15)">
+      <div style="font-size:56px;margin-bottom:16px">🔐</div>
+      <h2 style="font-size:20px;color:#2d2d2d;margin-bottom:8px;font-weight:700">请输入查看密码</h2>
+      <p style="font-size:13px;color:#999;margin-bottom:24px">输入4位密码即可查看贺卡</p>
+      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">
+        <input type="text" maxlength="1" class="pwd-digit" style="width:52px;height:60px;border:2px solid #e8e8e8;border-radius:12px;text-align:center;font-size:28px;font-weight:700;color:#2d2d2d;background:#fafafa;outline:none;transition:border-color .2s" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" class="pwd-digit" style="width:52px;height:60px;border:2px solid #e8e8e8;border-radius:12px;text-align:center;font-size:28px;font-weight:700;color:#2d2d2d;background:#fafafa;outline:none;transition:border-color .2s" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" class="pwd-digit" style="width:52px;height:60px;border:2px solid #e8e8e8;border-radius:12px;text-align:center;font-size:28px;font-weight:700;color:#2d2d2d;background:#fafafa;outline:none;transition:border-color .2s" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" class="pwd-digit" style="width:52px;height:60px;border:2px solid #e8e8e8;border-radius:12px;text-align:center;font-size:28px;font-weight:700;color:#2d2d2d;background:#fafafa;outline:none;transition:border-color .2s" inputmode="numeric" pattern="[0-9]">
+      </div>
+      <button id="pwdSubmit" style="width:100%;height:48px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff6b9d,#ff8fab);color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 16px rgba(255,107,157,0.3)">确 定</button>
+      <p id="pwdError" style="font-size:13px;color:#ff4757;margin-top:14px;min-height:20px;opacity:0;transition:opacity .3s"></p>
+    </div>`;
+  document.body.appendChild(gate);
+
+  const digits=gate.querySelectorAll('.pwd-digit');
+  const submitBtn=gate.querySelector('#pwdSubmit');
+  const errorEl=gate.querySelector('#pwdError');
+
+  digits.forEach((d,i)=>{
+    d.addEventListener('input',()=>{
+      d.value=d.value.replace(/\D/g,'');
+      if(d.value&&i<3)digits[i+1].focus();
+    });
+    d.addEventListener('keydown',e=>{
+      if(e.key==='Backspace'&&!d.value&&i>0){digits[i-1].focus();digits[i-1].value=''}
+      if(e.key==='Enter')submitBtn.click();
+    });
+    d.addEventListener('focus',()=>{d.style.borderColor='#ff6b9d';d.style.background='#fff'});
+    d.addEventListener('blur',()=>{d.style.borderColor='#e8e8e8';d.style.background='#fafafa'});
+  });
+
+  function checkPassword(){
+    const entered=Array.from(digits).map(d=>d.value).join('');
+    if(entered.length<4){errorEl.textContent='请输入4位密码';errorEl.style.opacity='1';return}
+    if(entered===correctPassword){
+      gate.style.transition='opacity .4s';gate.style.opacity='0';
+      setTimeout(()=>{gate.remove();renderDisplay()},400);
+    }else{
+      errorEl.textContent='密码错误，请重新输入';errorEl.style.opacity='1';
+      digits.forEach(d=>{d.style.borderColor='#ff4757';d.value=''});
+      digits[0].focus();
+      setTimeout(()=>{digits.forEach(d=>{d.style.borderColor='#e8e8e8'});errorEl.style.opacity='0'},1500);
+    }
+  }
+  submitBtn.addEventListener('click',checkPassword);
+  digits[0].focus();
 }
 
 function renderDisplay(){
@@ -1325,6 +1404,7 @@ else{
   pickerMonth=selectedMonth;pickerDay=selectedDay;
   birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
   birthdayDisplay.style.color='var(--text)';
+  const lu0=getLunarInfo(selectedMonth,selectedDay);$('lunarDisplay').textContent=`农历：${lu0.monthCn}${lu0.dayCn}`;
   renderImgGrid();
 }
 
