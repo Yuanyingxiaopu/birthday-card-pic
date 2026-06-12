@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/solarlunar@2.0.7/dist/solarlunar.min.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -282,12 +281,11 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
       <input type="text" class="form-input" id="nameInput" placeholder="输入Ta的名字" maxlength="20">
     </div>
     <div class="form-group">
-      <label>生日 <span class="req">*</span></label>
+      <label>生日（农历） <span class="req">*</span></label>
       <div class="form-input birthday-trigger" id="birthdayTrigger" tabindex="0">
-        <span id="birthdayDisplay" style="color:#bbb">选择日期</span>
+        <span id="birthdayDisplay" style="color:#bbb">选择农历日期</span>
         <span class="arrow">▼</span>
       </div>
-      <div id="lunarDisplay" style="font-size:12px;color:#999;margin-top:4px;min-height:18px;padding-left:2px"></div>
     </div>
     <div class="form-group">
       <label>发送人昵称 <span class="req">*</span></label>
@@ -484,17 +482,6 @@ const tokenParam=urlParams.get('token'); // token=xxx → editor mode (authoriza
 const cardParam=urlParams.get('card');   // card=xxx → display mode (view card)
 const isDisplayMode=!!cardParam||(urlParams.has('name')&&urlParams.has('sender'));
 
-/* ========== LUNAR CALENDAR ========== */
-function getLunarInfo(month,day){
-  const year=new Date().getFullYear();
-  if(typeof solarLunar==='undefined')return{month:1,day:1,monthCn:'正月',dayCn:'初一',password:'0101'};
-  const r=solarLunar.solar2lunar(year,month,day);
-  if(r===-1)return{month:1,day:1,monthCn:'正月',dayCn:'初一',password:'0101'};
-  const lm=r.lMonth||1,ld=r.lDay||1;
-  return{month:lm,day:ld,monthCn:r.monthCn||'',dayCn:r.dayCn||'',
-    password:String(lm).padStart(2,'0')+String(ld).padStart(2,'0')};
-}
-
 /* ========== TOKEN SYSTEM (Cloud + Local) ========== */
 const CLOUD_API='https://jsonblob.com/api/jsonBlob';
 
@@ -641,8 +628,6 @@ $('pickerConfirm').addEventListener('click',()=>{
   selectedMonth=pickerMonth;selectedDay=pickerDay;
   birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
   birthdayDisplay.style.color='var(--text)';
-  const lu=getLunarInfo(selectedMonth,selectedDay);
-  $('lunarDisplay').textContent=`农历：${lu.monthCn}${lu.dayCn}`;
   closePicker();
 });
 pickerOverlay.addEventListener('click',e=>{if(e.target===pickerOverlay)closePicker()});
@@ -977,14 +962,13 @@ function generateCard(){
       generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme,currentToken);
       // Save card data with token to cloud + local
       showToast('☁️ 正在保存到云端...');
-      const lunarInfo=getLunarInfo(selectedMonth,selectedDay);
+      const lunarPassword=String(selectedMonth).padStart(2,'0')+String(selectedDay).padStart(2,'0');
       saveCardData(currentToken,{
         name,sender,month:selectedMonth,day:selectedDay,
         theme:currentTheme,blessing,
         images:uploadedImages,texts:shareTexts,
         token:currentToken,
-        lunarPassword:lunarInfo.password,
-        lunarMonthCn:lunarInfo.monthCn,lunarDayCn:lunarInfo.dayCn
+        lunarPassword
       }).then(ok=>{
         if(ok)showToast('✅ 贺卡已保存，链接可分享给他人',2000);
         else{showToast('⚠️ 云端保存失败，仅本地可用',3000);currentToken=''}
@@ -1085,7 +1069,6 @@ function renderHistory(){
     }
     const it=getHistory()[parseInt(el.dataset.idx)];if(!it)return;nameInput.value=it.name;senderInput.value=it.sender;selectedMonth=it.month;selectedDay=it.day;
     birthdayDisplay.textContent=`${String(it.month).padStart(2,'0')}月${String(it.day).padStart(2,'0')}日`;birthdayDisplay.style.color='var(--text)';
-    const luH=getLunarInfo(it.month,it.day);$('lunarDisplay').textContent=`农历：${luH.monthCn}${luH.dayCn}`;
     blessingInput.value=it.blessing||'';if(it.theme!==undefined)selectTheme(it.theme);historyPanel.classList.remove('show');window.scrollTo({top:0,behavior:'smooth'});
   })});
 }
@@ -1404,7 +1387,6 @@ else{
   pickerMonth=selectedMonth;pickerDay=selectedDay;
   birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
   birthdayDisplay.style.color='var(--text)';
-  const lu0=getLunarInfo(selectedMonth,selectedDay);$('lunarDisplay').textContent=`农历：${lu0.monthCn}${lu0.dayCn}`;
   renderImgGrid();
 }
 
