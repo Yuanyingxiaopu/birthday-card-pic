@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/solarlunar@2.0.7/lib/solarlunar.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -147,10 +147,10 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
 .picker-cancel{color:#999}.picker-confirm{color:var(--theme-color);font-weight:600}
 .picker-body{display:flex;height:220px;position:relative;padding:0 10px}
 .picker-body::before{content:'';position:absolute;left:10px;right:10px;top:88px;height:44px;border-top:1px solid #e8e8e8;border-bottom:1px solid #e8e8e8;background:rgba(255,255,157,0.04);z-index:2;pointer-events:none;border-radius:8px}
-.picker-column{flex:1;height:100%;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}
+.picker-column{flex:1;height:100%;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;min-width:0}
 .picker-column::-webkit-scrollbar{display:none}
 .picker-item{height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#999;scroll-snap-align:center;cursor:pointer;transition:all .15s;user-select:none}
-.picker-sep{max-width:30px;flex:none;display:flex;align-items:center;justify-content:center}
+.picker-sep{max-width:20px;flex:none;display:flex;align-items:center;justify-content:center}
 .picker-sep span{color:#999;font-size:16px}
 .picker-padding{height:88px}
 
@@ -401,13 +401,16 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
   <div class="picker-panel">
     <div class="picker-header">
       <button class="picker-cancel" id="pickerCancel">取消</button>
-      <h3>选择生日（月 / 日）</h3>
+      <h3>选择阳历生日</h3>
       <button class="picker-confirm" id="pickerConfirm">确定</button>
     </div>
     <div class="picker-body">
+      <div class="picker-column" id="yearColumn"></div>
+      <div class="picker-sep"><span>年</span></div>
       <div class="picker-column" id="monthColumn"></div>
-      <div class="picker-sep"><span>/</span></div>
+      <div class="picker-sep"><span>月</span></div>
       <div class="picker-column" id="dayColumn"></div>
+      <div class="picker-sep"><span>日</span></div>
     </div>
   </div>
 </div>
@@ -445,7 +448,7 @@ const RECOMMENDED_IMAGES=[
 ];
 let recSetIdx=0;
 
-let currentTheme=0,selectedMonth=1,selectedDay=1,pickerMonth=1,pickerDay=1;
+let currentTheme=0,selectedYear=2000,selectedMonth=1,selectedDay=1,pickerYear=2000,pickerMonth=1,pickerDay=1;
 let uploadedImages=[];
 let thumbnailData=[];
 let shareTexts=[];
@@ -471,7 +474,7 @@ const DEFAULT_TEXTS=['生日快乐！','愿你天天开心！','心想事成！'
 const $=id=>document.getElementById(id);
 const nameInput=$('nameInput'),senderInput=$('senderInput'),blessingInput=$('blessingInput');
 const birthdayTrigger=$('birthdayTrigger'),birthdayDisplay=$('birthdayDisplay');
-const pickerOverlay=$('pickerOverlay'),monthColumn=$('monthColumn'),dayColumn=$('dayColumn');
+const pickerOverlay=$('pickerOverlay'),yearColumn=$('yearColumn'),monthColumn=$('monthColumn'),dayColumn=$('dayColumn');
 const generateBtn=$('generateBtn'),resultSection=$('resultSection');
 const cardCanvas=$('cardCanvas'),downloadBtn=$('downloadBtn'),copyBtn=$('copyBtn');
 const toastEl=$('toast'),historyBtn=$('historyBtn'),historyPanel=$('historyPanel'),historyList=$('historyList'),historyClose=$('historyClose');
@@ -484,18 +487,23 @@ const tokenParam=urlParams.get('token'); // token=xxx → editor mode (authoriza
 const cardParam=urlParams.get('card');   // card=xxx → display mode (view card)
 const isDisplayMode=!!cardParam||(urlParams.has('name')&&urlParams.has('sender'));
 
-/* ========== LUNAR HELPERS ========== */
-const LUNAR_MONTH_CN=['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','腊月'];
-const LUNAR_DAY_CN=['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
-  '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
-  '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
-function solarToLunar(month,day){
-  const year=new Date().getFullYear();
-  if(typeof solarLunar!=='undefined'){
-    const r=solarLunar.solar2lunar(year,month,day);
-    if(r!==-1)return{month:r.lMonth,day:r.lDay,monthCn:r.monthCn||LUNAR_MONTH_CN[r.lMonth-1],dayCn:r.dayCn||LUNAR_DAY_CN[r.lDay-1],
-      password:String(r.lMonth).padStart(2,'0')+String(r.lDay).padStart(2,'0')};
-  }
+/* ========== LUNAR HELPERS (lunar-javascript) ========== */
+function solarToLunar(year,month,day){
+  try{
+    if(typeof Solar!=='undefined'){
+      const solar=Solar.fromYmd(year,month,day);
+      const lunar=solar.getLunar();
+      const lMonth=lunar.getMonth();
+      const lDay=lunar.getDay();
+      const monthCn=lunar.getMonthInChinese();
+      const dayCn=lunar.getDayInChinese();
+      return{
+        month:lMonth,day:lDay,
+        monthCn:monthCn,dayCn:dayCn,
+        password:String(Math.abs(lMonth)).padStart(2,'0')+String(lDay).padStart(2,'0')
+      };
+    }
+  }catch(e){console.warn('Lunar conversion error:',e)}
   return{month:1,day:1,monthCn:'正月',dayCn:'初一',password:'0101'};
 }
 
@@ -589,15 +597,21 @@ function selectTheme(i){
   if(btn){btn.style.background=t.gradient;btn.style.boxShadow=`0 4px 16px ${t.color}44`}
 }
 
-function getDaysInMonth(m){return[31,29,31,30,31,30,31,31,30,31,30,31][m-1]}
+function getDaysInMonth(y,m){return new Date(y,m,0).getDate()}
 function buildPicker(){
-  monthColumn.innerHTML='';dayColumn.innerHTML='';
+  yearColumn.innerHTML='';monthColumn.innerHTML='';dayColumn.innerHTML='';
   const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
+  // Year column: 1940~2030
+  yearColumn.appendChild(mk());
+  for(let y=1940;y<=2030;y++){const d=document.createElement('div');d.className='picker-item';d.textContent=y;d.dataset.val=y;yearColumn.appendChild(d)}
+  yearColumn.appendChild(mk());
+  // Month column
   monthColumn.appendChild(mk());
   for(let m=1;m<=12;m++){const d=document.createElement('div');d.className='picker-item';d.textContent=String(m).padStart(2,'0');d.dataset.val=m;monthColumn.appendChild(d)}
   monthColumn.appendChild(mk());
+  // Day column
   dayColumn.appendChild(mk());
-  const dim=getDaysInMonth(pickerMonth);
+  const dim=getDaysInMonth(pickerYear,pickerMonth);
   for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
   dayColumn.appendChild(mk());
 }
@@ -612,38 +626,52 @@ function readPickerCol(col){
   let best=items[0],min=Infinity;items.forEach(it=>{const d=Math.abs(it.offsetTop-target);if(d<min){min=d;best=it}});
   return parseInt(best.dataset.val)||1;
 }
-let mT,dT;
+let yT,mT,dT;
+function rebuildDays(){
+  const oldDay=pickerDay;dayColumn.innerHTML='';
+  const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
+  dayColumn.appendChild(mk());const dim=getDaysInMonth(pickerYear,pickerMonth);
+  for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
+  dayColumn.appendChild(mk());pickerDay=Math.min(oldDay,dim);scrollPicker(dayColumn,pickerDay);
+}
 function onPickerScroll(col,type){
-  clearTimeout(type==='month'?mT:dT);
+  clearTimeout(type==='year'?yT:type==='month'?mT:dT);
   const tm=setTimeout(()=>{
     const val=readPickerCol(col);
-    if(type==='month'){
-      pickerMonth=val;const oldDay=pickerDay;dayColumn.innerHTML='';
-      const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
-      dayColumn.appendChild(mk());const dim=getDaysInMonth(val);
-      for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
-      dayColumn.appendChild(mk());pickerDay=Math.min(oldDay,dim);scrollPicker(dayColumn,pickerDay);
-    }else{pickerDay=val}highlightPicker();
+    if(type==='year'){pickerYear=val;rebuildDays()}
+    else if(type==='month'){pickerMonth=val;rebuildDays()}
+    else{pickerDay=val}
+    highlightPicker();updateLunarPreview();
   },80);
-  if(type==='month')mT=tm;else dT=tm;
+  if(type==='year')yT=tm;else if(type==='month')mT=tm;else dT=tm;
 }
 function highlightPicker(){
+  yearColumn.querySelectorAll('.picker-item').forEach(it=>{const a=parseInt(it.dataset.val)===pickerYear;it.style.color=a?'var(--theme-color)':'';it.style.fontWeight=a?'600':''});
   monthColumn.querySelectorAll('.picker-item').forEach(it=>{const a=parseInt(it.dataset.val)===pickerMonth;it.style.color=a?'var(--theme-color)':'';it.style.fontWeight=a?'600':''});
   dayColumn.querySelectorAll('.picker-item').forEach(it=>{const a=parseInt(it.dataset.val)===pickerDay;it.style.color=a?'var(--theme-color)':'';it.style.fontWeight=a?'600':''});
 }
-function openPicker(){
-  pickerMonth=selectedMonth;pickerDay=selectedDay;buildPicker();pickerOverlay.classList.add('show');
-  setTimeout(()=>{scrollPicker(monthColumn,pickerMonth);scrollPicker(dayColumn,pickerDay);monthColumn.onscroll=()=>onPickerScroll(monthColumn,'month');dayColumn.onscroll=()=>onPickerScroll(dayColumn,'day')},50);
+function updateLunarPreview(){
+  const lu=solarToLunar(pickerYear,pickerMonth,pickerDay);
+  $('lunarDisplay').textContent=`农历：${lu.monthCn}${lu.dayCn}`;
 }
-function closePicker(){pickerOverlay.classList.remove('show');monthColumn.onscroll=null;dayColumn.onscroll=null}
+function openPicker(){
+  pickerYear=selectedYear;pickerMonth=selectedMonth;pickerDay=selectedDay;buildPicker();pickerOverlay.classList.add('show');
+  setTimeout(()=>{
+    scrollPicker(yearColumn,pickerYear);scrollPicker(monthColumn,pickerMonth);scrollPicker(dayColumn,pickerDay);
+    yearColumn.onscroll=()=>onPickerScroll(yearColumn,'year');
+    monthColumn.onscroll=()=>onPickerScroll(monthColumn,'month');
+    dayColumn.onscroll=()=>onPickerScroll(dayColumn,'day');
+  },50);
+}
+function closePicker(){pickerOverlay.classList.remove('show');yearColumn.onscroll=null;monthColumn.onscroll=null;dayColumn.onscroll=null}
 
 birthdayTrigger.addEventListener('click',openPicker);
 $('pickerCancel').addEventListener('click',closePicker);
 $('pickerConfirm').addEventListener('click',()=>{
-  selectedMonth=pickerMonth;selectedDay=pickerDay;
-  birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
+  selectedYear=pickerYear;selectedMonth=pickerMonth;selectedDay=pickerDay;
+  birthdayDisplay.textContent=`${selectedYear}-${String(selectedMonth).padStart(2,'0')}-${String(selectedDay).padStart(2,'0')}`;
   birthdayDisplay.style.color='var(--text)';
-  const lu=solarToLunar(selectedMonth,selectedDay);
+  const lu=solarToLunar(selectedYear,selectedMonth,selectedDay);
   $('lunarDisplay').textContent=`农历：${lu.monthCn}${lu.dayCn}`;
   closePicker();
 });
@@ -868,7 +896,7 @@ function buildShareURL(){
     return `${location.origin}${location.pathname}?card=${currentToken}`;
   }
   const n=encodeURIComponent(nameInput.value.trim()),s=encodeURIComponent(senderInput.value.trim()),b=encodeURIComponent(blessingInput.value.trim());
-  return `${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
+  return `${location.origin}${location.pathname}?name=${n}&sender=${s}&year=${selectedYear}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
 }
 function buildShortURL(){return buildShareURL()}
 
@@ -979,9 +1007,9 @@ function generateCard(){
       generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme,currentToken);
       // Save card data with token to cloud + local
       showToast('☁️ 正在保存到云端...');
-      const lunarInfo=solarToLunar(selectedMonth,selectedDay);
+      const lunarInfo=solarToLunar(selectedYear,selectedMonth,selectedDay);
       saveCardData(currentToken,{
-        name,sender,month:selectedMonth,day:selectedDay,
+        name,sender,year:selectedYear,month:selectedMonth,day:selectedDay,
         theme:currentTheme,blessing,
         images:uploadedImages,texts:shareTexts,
         token:currentToken,
@@ -1117,7 +1145,8 @@ function startDisplayMode(){
         return;
       }
       displayData={name:tokenData.name||'',sender:tokenData.sender||'',
-        month:tokenData.month||1,day:tokenData.day||1,
+        year:tokenData.year||2000,month:tokenData.month||1,day:tokenData.day||1,
+        lunarMonthCn:tokenData.lunarMonthCn||'',lunarDayCn:tokenData.lunarDayCn||'',
         themeIdx:tokenData.theme||0,blessing:tokenData.blessing||'生日快乐！',
         images:tokenData.images||[],texts:tokenData.texts||[]
       };
@@ -1133,7 +1162,8 @@ function startDisplayMode(){
   // Legacy URL mode (no token) — no password gate
   displayData={
     name:urlParams.get('name')||'',sender:urlParams.get('sender')||'',
-    month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
+    year:parseInt(urlParams.get('year'))||2000,month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
+    lunarMonthCn:'',lunarDayCn:'',
     themeIdx:parseInt(urlParams.get('theme'))||0,blessing:urlParams.get('blessing')||'生日快乐！',
     images:(function(){
       const raw=urlParams.get('img');if(!raw)return[];
@@ -1162,8 +1192,8 @@ function showPasswordGate(correctPassword){
   gate.innerHTML=`
     <div style="background:rgba(255,255,255,0.95);border-radius:24px;padding:40px 32px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.15)">
       <div style="font-size:56px;margin-bottom:16px">🔐</div>
-      <h2 style="font-size:20px;color:#2d2d2d;margin-bottom:8px;font-weight:700">请输入查看密码</h2>
-      <p style="font-size:13px;color:#999;margin-bottom:24px">输入4位密码即可查看贺卡</p>
+      <h2 style="font-size:20px;color:#2d2d2d;margin-bottom:8px;font-weight:700">请输入生日密码</h2>
+      <p style="font-size:13px;color:#999;margin-bottom:24px">输入4位生日密码即可查看贺卡</p>
       <div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">
         <input type="text" maxlength="1" class="pwd-digit" style="width:52px;height:60px;border:2px solid #e8e8e8;border-radius:12px;text-align:center;font-size:28px;font-weight:700;color:#2d2d2d;background:#fafafa;outline:none;transition:border-color .2s" inputmode="numeric" pattern="[0-9]">
         <input type="text" maxlength="1" class="pwd-digit" style="width:52px;height:60px;border:2px solid #e8e8e8;border-radius:12px;text-align:center;font-size:28px;font-weight:700;color:#2d2d2d;background:#fafafa;outline:none;transition:border-color .2s" inputmode="numeric" pattern="[0-9]">
@@ -1233,7 +1263,9 @@ function renderDisplay(){
 
   // Phase 3: Blessing
   const p3=document.createElement('div');p3.className='d-phase';
-  p3.innerHTML=`<div class="d-phase-title">🎂 生日快乐！</div><div class="d-phase-title" style="font-size:clamp(22px,6vw,38px)">致：${displayData.name}</div><div class="d-phase-title" style="font-size:clamp(14px,3.5vw,20px);color:rgba(255,255,255,0.75)">${displayData.month}月${displayData.day}日</div><div style="width:60px;height:2px;background:rgba(255,255,255,0.3);margin:16px auto;opacity:0" class="p3-div"></div><div class="d-phase-text">${displayData.blessing}</div><div class="d-phase-text" style="font-size:clamp(13px,3vw,17px);color:rgba(255,255,255,0.6);margin-top:24px">—— 来自 ${displayData.sender} 的祝福</div><div class="d-swipe-hint">↑ 上滑继续 ↑</div>`;
+  const solarStr=`${displayData.year?displayData.year+'年':''}${displayData.month}月${displayData.day}日`;
+  const lunarStr=displayData.lunarMonthCn&&displayData.lunarDayCn?`${displayData.lunarMonthCn}${displayData.lunarDayCn}`:'';
+  p3.innerHTML=`<div class="d-phase-title">🎂 生日快乐！</div><div class="d-phase-title" style="font-size:clamp(22px,6vw,38px)">致：${displayData.name}</div><div class="d-phase-title" style="font-size:clamp(14px,3.5vw,20px);color:rgba(255,255,255,0.85)">阳历：${solarStr}</div>${lunarStr?`<div class="d-phase-title" style="font-size:clamp(14px,3.5vw,20px);color:rgba(255,255,255,0.75)">阴历：${lunarStr}</div>`:''}<div style="width:60px;height:2px;background:rgba(255,255,255,0.3);margin:16px auto;opacity:0" class="p3-div"></div><div class="d-phase-text">${displayData.blessing}</div><div class="d-phase-text" style="font-size:clamp(13px,3vw,17px);color:rgba(255,255,255,0.6);margin-top:24px">—— 来自 ${displayData.sender} 的祝福</div><div class="d-swipe-hint">↑ 上滑继续 ↑</div>`;
   scroll.appendChild(p3);phases.push(p3);
 
   // Image phases - card style
@@ -1402,11 +1434,11 @@ else{
     }
   }
   initThemes();selectTheme(0);
-  const today=new Date();selectedMonth=today.getMonth()+1;selectedDay=today.getDate();
-  pickerMonth=selectedMonth;pickerDay=selectedDay;
-  birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
+  const today=new Date();selectedYear=today.getFullYear();selectedMonth=today.getMonth()+1;selectedDay=today.getDate();
+  pickerYear=selectedYear;pickerMonth=selectedMonth;pickerDay=selectedDay;
+  birthdayDisplay.textContent=`${selectedYear}-${String(selectedMonth).padStart(2,'0')}-${String(selectedDay).padStart(2,'0')}`;
   birthdayDisplay.style.color='var(--text)';
-  const lu0=solarToLunar(selectedMonth,selectedDay);$('lunarDisplay').textContent=`农历：${lu0.monthCn}${lu0.dayCn}`;
+  const lu0=solarToLunar(selectedYear,selectedMonth,selectedDay);$('lunarDisplay').textContent=`农历：${lu0.monthCn}${lu0.dayCn}`;
   renderImgGrid();
 }
 
