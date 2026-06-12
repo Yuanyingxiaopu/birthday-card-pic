@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -287,7 +286,6 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
         <span id="birthdayDisplay" style="color:#bbb">选择日期</span>
         <span class="arrow">▼</span>
       </div>
-      <div id="lunarDisplay" style="font-size:12px;color:#999;margin-top:4px;min-height:18px;padding-left:2px"></div>
     </div>
     <div class="form-group">
       <label>发送人昵称 <span class="req">*</span></label>
@@ -401,12 +399,10 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
   <div class="picker-panel">
     <div class="picker-header">
       <button class="picker-cancel" id="pickerCancel">取消</button>
-      <h3>选择阳历生日</h3>
+      <h3>选择生日</h3>
       <button class="picker-confirm" id="pickerConfirm">确定</button>
     </div>
     <div class="picker-body">
-      <div class="picker-column" id="yearColumn"></div>
-      <div class="picker-sep"><span>年</span></div>
       <div class="picker-column" id="monthColumn"></div>
       <div class="picker-sep"><span>月</span></div>
       <div class="picker-column" id="dayColumn"></div>
@@ -448,7 +444,7 @@ const RECOMMENDED_IMAGES=[
 ];
 let recSetIdx=0;
 
-let currentTheme=0,selectedYear=2000,selectedMonth=1,selectedDay=1,pickerYear=2000,pickerMonth=1,pickerDay=1;
+let currentTheme=0,selectedMonth=1,selectedDay=1,pickerMonth=1,pickerDay=1;
 let uploadedImages=[];
 let thumbnailData=[];
 let shareTexts=[];
@@ -474,7 +470,7 @@ const DEFAULT_TEXTS=['生日快乐！','愿你天天开心！','心想事成！'
 const $=id=>document.getElementById(id);
 const nameInput=$('nameInput'),senderInput=$('senderInput'),blessingInput=$('blessingInput');
 const birthdayTrigger=$('birthdayTrigger'),birthdayDisplay=$('birthdayDisplay');
-const pickerOverlay=$('pickerOverlay'),yearColumn=$('yearColumn'),monthColumn=$('monthColumn'),dayColumn=$('dayColumn');
+const pickerOverlay=$('pickerOverlay'),monthColumn=$('monthColumn'),dayColumn=$('dayColumn');
 const generateBtn=$('generateBtn'),resultSection=$('resultSection');
 const cardCanvas=$('cardCanvas'),downloadBtn=$('downloadBtn'),copyBtn=$('copyBtn');
 const toastEl=$('toast'),historyBtn=$('historyBtn'),historyPanel=$('historyPanel'),historyList=$('historyList'),historyClose=$('historyClose');
@@ -487,24 +483,9 @@ const tokenParam=urlParams.get('token'); // token=xxx → editor mode (authoriza
 const cardParam=urlParams.get('card');   // card=xxx → display mode (view card)
 const isDisplayMode=!!cardParam||(urlParams.has('name')&&urlParams.has('sender'));
 
-/* ========== LUNAR HELPERS (lunar-javascript) ========== */
-function solarToLunar(year,month,day){
-  try{
-    if(typeof Solar!=='undefined'){
-      const solar=Solar.fromYmd(year,month,day);
-      const lunar=solar.getLunar();
-      const lMonth=lunar.getMonth();
-      const lDay=lunar.getDay();
-      const monthCn=lunar.getMonthInChinese();
-      const dayCn=lunar.getDayInChinese();
-      return{
-        month:lMonth,day:lDay,
-        monthCn:monthCn,dayCn:dayCn,
-        password:String(Math.abs(lMonth)).padStart(2,'0')+String(lDay).padStart(2,'0')
-      };
-    }
-  }catch(e){console.warn('Lunar conversion error:',e)}
-  return{month:1,day:1,monthCn:'正月',dayCn:'初一',password:'0101'};
+/* ========== PASSWORD HELPER ========== */
+function solarPassword(month,day){
+  return String(month).padStart(2,'0')+String(day).padStart(2,'0');
 }
 
 /* ========== TOKEN SYSTEM (Cloud + Local) ========== */
@@ -597,21 +578,17 @@ function selectTheme(i){
   if(btn){btn.style.background=t.gradient;btn.style.boxShadow=`0 4px 16px ${t.color}44`}
 }
 
-function getDaysInMonth(y,m){return new Date(y,m,0).getDate()}
+function getDaysInMonth(m){const y=new Date().getFullYear();return new Date(y,m,0).getDate()}
 function buildPicker(){
-  yearColumn.innerHTML='';monthColumn.innerHTML='';dayColumn.innerHTML='';
+  monthColumn.innerHTML='';dayColumn.innerHTML='';
   const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
-  // Year column: 1940~2030
-  yearColumn.appendChild(mk());
-  for(let y=1940;y<=2030;y++){const d=document.createElement('div');d.className='picker-item';d.textContent=y;d.dataset.val=y;yearColumn.appendChild(d)}
-  yearColumn.appendChild(mk());
   // Month column
   monthColumn.appendChild(mk());
   for(let m=1;m<=12;m++){const d=document.createElement('div');d.className='picker-item';d.textContent=String(m).padStart(2,'0');d.dataset.val=m;monthColumn.appendChild(d)}
   monthColumn.appendChild(mk());
   // Day column
   dayColumn.appendChild(mk());
-  const dim=getDaysInMonth(pickerYear,pickerMonth);
+  const dim=getDaysInMonth(pickerMonth);
   for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
   dayColumn.appendChild(mk());
 }
@@ -626,53 +603,44 @@ function readPickerCol(col){
   let best=items[0],min=Infinity;items.forEach(it=>{const d=Math.abs(it.offsetTop-target);if(d<min){min=d;best=it}});
   return parseInt(best.dataset.val)||1;
 }
-let yT,mT,dT;
+let mT,dT;
 function rebuildDays(){
   const oldDay=pickerDay;dayColumn.innerHTML='';
   const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
-  dayColumn.appendChild(mk());const dim=getDaysInMonth(pickerYear,pickerMonth);
+  dayColumn.appendChild(mk());const dim=getDaysInMonth(pickerMonth);
   for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
   dayColumn.appendChild(mk());pickerDay=Math.min(oldDay,dim);scrollPicker(dayColumn,pickerDay);
 }
 function onPickerScroll(col,type){
-  clearTimeout(type==='year'?yT:type==='month'?mT:dT);
+  clearTimeout(type==='month'?mT:dT);
   const tm=setTimeout(()=>{
     const val=readPickerCol(col);
-    if(type==='year'){pickerYear=val;rebuildDays()}
-    else if(type==='month'){pickerMonth=val;rebuildDays()}
+    if(type==='month'){pickerMonth=val;rebuildDays()}
     else{pickerDay=val}
-    highlightPicker();updateLunarPreview();
+    highlightPicker();
   },80);
-  if(type==='year')yT=tm;else if(type==='month')mT=tm;else dT=tm;
+  if(type==='month')mT=tm;else dT=tm;
 }
 function highlightPicker(){
-  yearColumn.querySelectorAll('.picker-item').forEach(it=>{const a=parseInt(it.dataset.val)===pickerYear;it.style.color=a?'var(--theme-color)':'';it.style.fontWeight=a?'600':''});
   monthColumn.querySelectorAll('.picker-item').forEach(it=>{const a=parseInt(it.dataset.val)===pickerMonth;it.style.color=a?'var(--theme-color)':'';it.style.fontWeight=a?'600':''});
   dayColumn.querySelectorAll('.picker-item').forEach(it=>{const a=parseInt(it.dataset.val)===pickerDay;it.style.color=a?'var(--theme-color)':'';it.style.fontWeight=a?'600':''});
 }
-function updateLunarPreview(){
-  const lu=solarToLunar(pickerYear,pickerMonth,pickerDay);
-  $('lunarDisplay').textContent=`农历：${lu.monthCn}${lu.dayCn}`;
-}
 function openPicker(){
-  pickerYear=selectedYear;pickerMonth=selectedMonth;pickerDay=selectedDay;buildPicker();pickerOverlay.classList.add('show');
+  pickerMonth=selectedMonth;pickerDay=selectedDay;buildPicker();pickerOverlay.classList.add('show');
   setTimeout(()=>{
-    scrollPicker(yearColumn,pickerYear);scrollPicker(monthColumn,pickerMonth);scrollPicker(dayColumn,pickerDay);
-    yearColumn.onscroll=()=>onPickerScroll(yearColumn,'year');
+    scrollPicker(monthColumn,pickerMonth);scrollPicker(dayColumn,pickerDay);
     monthColumn.onscroll=()=>onPickerScroll(monthColumn,'month');
     dayColumn.onscroll=()=>onPickerScroll(dayColumn,'day');
   },50);
 }
-function closePicker(){pickerOverlay.classList.remove('show');yearColumn.onscroll=null;monthColumn.onscroll=null;dayColumn.onscroll=null}
+function closePicker(){pickerOverlay.classList.remove('show');monthColumn.onscroll=null;dayColumn.onscroll=null}
 
 birthdayTrigger.addEventListener('click',openPicker);
 $('pickerCancel').addEventListener('click',closePicker);
 $('pickerConfirm').addEventListener('click',()=>{
-  selectedYear=pickerYear;selectedMonth=pickerMonth;selectedDay=pickerDay;
-  birthdayDisplay.textContent=`${selectedYear}-${String(selectedMonth).padStart(2,'0')}-${String(selectedDay).padStart(2,'0')}`;
+  selectedMonth=pickerMonth;selectedDay=pickerDay;
+  birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
   birthdayDisplay.style.color='var(--text)';
-  const lu=solarToLunar(selectedYear,selectedMonth,selectedDay);
-  $('lunarDisplay').textContent=`农历：${lu.monthCn}${lu.dayCn}`;
   closePicker();
 });
 pickerOverlay.addEventListener('click',e=>{if(e.target===pickerOverlay)closePicker()});
@@ -896,7 +864,7 @@ function buildShareURL(){
     return `${location.origin}${location.pathname}?card=${currentToken}`;
   }
   const n=encodeURIComponent(nameInput.value.trim()),s=encodeURIComponent(senderInput.value.trim()),b=encodeURIComponent(blessingInput.value.trim());
-  return `${location.origin}${location.pathname}?name=${n}&sender=${s}&year=${selectedYear}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
+  return `${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
 }
 function buildShortURL(){return buildShareURL()}
 
@@ -934,11 +902,11 @@ function generateCard(){
     const canvas=cardCanvas,ctx=canvas.getContext('2d');
     const W=600;
     const imgCount=uploadedImages.length;
-    const imgH=400;
-    const textH=60;
-    const headerH=160;
-    const footerH=200;
-    const H=headerH+imgCount*(imgH+textH)+footerH;
+    const headerH=200;
+    const footerH=260;
+    const imgAreaH=420;
+    const gapBetweenImg=50;
+    const H=headerH+imgCount*(imgAreaH+gapBetweenImg)-gapBetweenImg+footerH;
     canvas.width=W;canvas.height=H;
 
     // Background gradient
@@ -951,21 +919,27 @@ function generateCard(){
     // Stars
     for(let i=0;i<30;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.4+0.2})`;drawStar(ctx,Math.random()*W,Math.random()*headerH,Math.random()*3+1)}
 
-    // Header lines
-    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(40,50);ctx.lineTo(W-40,50);ctx.stroke();
-
-    // Header text
+    // Header
+    ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(60,50);ctx.lineTo(W-60,50);ctx.stroke();
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.font='40px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';
-    ctx.shadowColor='rgba(0,0,0,0.12)';ctx.shadowBlur=12;ctx.shadowOffsetY=4;
-    ctx.fillText('🎂 生日快乐！',W/2,95);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-    ctx.font='28px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';ctx.fillText(`致：${name}`,W/2,140);
+    ctx.font='16px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.fillText('HAPPY BIRTHDAY',W/2,72);
+    ctx.font='44px "ZCOOL KuaiLe",cursive';ctx.fillStyle='#fff';
+    ctx.shadowColor='rgba(0,0,0,0.15)';ctx.shadowBlur=12;ctx.shadowOffsetY=4;
+    ctx.fillText('🎂 生日快乐！',W/2,118);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    ctx.font='26px "ZCOOL KuaiLe",cursive';ctx.fillStyle='rgba(255,255,255,0.95)';
+    ctx.fillText(`致：${name}`,W/2,160);
+    ctx.font='18px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.fillText(`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`,W/2,184);
+    ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(60,198);ctx.lineTo(W-60,198);ctx.stroke();
 
-    // Draw images and texts
-    let y=headerH;
-    const imgPadding=40;
+    // Draw images and texts — card-style layout
+    let y=headerH+20;
+    const imgPadding=50;
     const imgDrawW=W-imgPadding*2;
+    const imgCardH=320;
 
     let imagesLoaded=0;
     const totalImages=imgCount;
@@ -973,48 +947,66 @@ function generateCard(){
 
     function drawAfterImagesLoad(){
       for(let i=0;i<imgCount;i++){
+        // Card background
+        ctx.fillStyle='rgba(255,255,255,0.12)';
+        roundRect(ctx,imgPadding-10,y,imgDrawW+20,imgCardH+20,16);ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1;
+        roundRect(ctx,imgPadding-10,y,imgDrawW+20,imgCardH+20,16);ctx.stroke();
+
+        // Blessing text above image
         if(texts[i]){
-          ctx.font='22px "ZCOOL KuaiLe",cursive';ctx.fillStyle='rgba(255,255,255,0.95)';
-          ctx.shadowColor='rgba(0,0,0,0.1)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;
-          ctx.fillText(texts[i],W/2,y+30);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+          ctx.font='20px "ZCOOL KuaiLe",cursive';ctx.fillStyle='rgba(255,255,255,0.95)';
+          ctx.shadowColor='rgba(0,0,0,0.1)';ctx.shadowBlur=4;ctx.shadowOffsetY=2;
+          ctx.fillText(texts[i],W/2,y+28);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
         }
         const img=imgEls[i];
         if(img){
+          const imgY=y+50;
+          const imgBoxH=imgCardH-60;
           ctx.save();
-          roundRect(ctx,imgPadding,y+50,imgDrawW,imgH-80,12);ctx.clip();
-          const scale=Math.max(imgDrawW/img.width,(imgH-80)/img.height);
-          const dw=img.width*scale,dh=img.height*scale;
-          ctx.drawImage(img,imgPadding+(imgDrawW-dw)/2,y+50+(imgH-80-dh)/2,dw,dh);
+          roundRect(ctx,imgPadding,imgY,imgDrawW,imgBoxH,12);ctx.clip();
+          const srcRatio=img.width/img.height;
+          const boxRatio=imgDrawW/imgBoxH;
+          let sx=0,sy=0,sw=img.width,sh=img.height;
+          if(srcRatio>boxRatio){sw=img.height*boxRatio;sx=(img.width-sw)/2}
+          else{sh=img.width/boxRatio;sy=(img.height-sh)/2}
+          ctx.drawImage(img,sx,sy,sw,sh,imgPadding,imgY,imgDrawW,imgBoxH);
           ctx.restore();
-          ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;
-          roundRect(ctx,imgPadding,y+50,imgDrawW,imgH-80,12);ctx.stroke();
+          ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+          roundRect(ctx,imgPadding,imgY,imgDrawW,imgBoxH,12);ctx.stroke();
         }
-        y+=imgH+textH;
+
+        // Page indicator
+        ctx.font='12px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';
+        ctx.fillText(`${i+1} / ${imgCount}`,W/2,y+imgCardH+8);
+
+        y+=imgCardH+gapBetweenImg;
       }
+
+      // Footer
+      ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(60,y);ctx.lineTo(W-60,y);ctx.stroke();
       if(texts[imgCount]){
-        ctx.font='20px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.9)';
-        ctx.fillText(texts[imgCount],W/2,y+20);
+        ctx.font='20px "ZCOOL KuaiLe",cursive';ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.fillText(texts[imgCount],W/2,y+30);
       }
-      ctx.font='16px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.65)';
-      ctx.fillText(`—— 来自 ${sender} 的祝福`,W/2,y+55);
-      ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(40,y+80);ctx.lineTo(W-40,y+80);ctx.stroke();
+      ctx.font='15px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.6)';
+      ctx.fillText(`—— 来自 ${sender} 的祝福`,W/2,y+60);
       const shareURL=buildShareURL();
-      drawQRCodeOnCanvas(ctx,shareURL,W,H,t,y+90);
+      drawQRCodeOnCanvas(ctx,shareURL,W,H,t,y+70);
       ctx.font='12px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';
-      ctx.fillText('Happy Everyday · 扫码打开给Ta惊喜 🎉',W/2,H-25);
+      ctx.fillText('Happy Everyday · 扫码打开给Ta惊喜 🎉',W/2,H-20);
       resultSection.classList.add('show');resultSection.scrollIntoView({behavior:'smooth',block:'start'});
       generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme,currentToken);
       // Save card data with token to cloud + local
       showToast('☁️ 正在保存到云端...');
-      const lunarInfo=solarToLunar(selectedYear,selectedMonth,selectedDay);
+      const pwd=solarPassword(selectedMonth,selectedDay);
       saveCardData(currentToken,{
-        name,sender,year:selectedYear,month:selectedMonth,day:selectedDay,
+        name,sender,month:selectedMonth,day:selectedDay,
         theme:currentTheme,blessing,
         images:uploadedImages,texts:shareTexts,
         token:currentToken,
-        lunarPassword:lunarInfo.password,
-        lunarMonthCn:lunarInfo.monthCn,lunarDayCn:lunarInfo.dayCn
+        solarPassword:pwd
       }).then(ok=>{
         if(ok)showToast('✅ 贺卡已保存，链接可分享给他人',2000);
         else{showToast('⚠️ 云端保存失败，仅本地可用',3000);currentToken=''}
@@ -1041,21 +1033,21 @@ function generateCard(){
 
 function drawQRCodeOnCanvas(ctx,url,W,H,t,qrY){
   try{
-    const qr=qrcode(0,'L');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cs=Math.floor(100/sz),qs=sz*cs,cx=W/2,cy=qrY+70;
-  ctx.fillStyle='rgba(255,255,255,0.9)';roundRect(ctx,cx-qs/2-12,cy-qs/2-12,qs+24,qs+24,10);ctx.fill();
+    const qr=qrcode(0,'M');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cs=Math.floor(140/sz),qs=sz*cs,cx=W/2,cy=qrY+80;
+  ctx.fillStyle='rgba(255,255,255,0.95)';roundRect(ctx,cx-qs/2-16,cy-qs/2-16,qs+32,qs+32,12);ctx.fill();
   for(let r=0;r<sz;r++)for(let c=0;c<sz;c++)if(qr.isDark(r,c)){ctx.fillStyle=t.cg[2];ctx.fillRect(cx-qs/2+c*cs,cy-qs/2+r*cs,cs,cs)}
   }catch(e){console.warn('QR generation failed:',e)}
 }
 function generateQRCode(url){
   const el=$('qrcodeEl');el.innerHTML='';
   try{
-    const qr=qrcode(0,'M');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cl=Math.max(4,Math.floor(200/sz));
+    const qr=qrcode(0,'M');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cl=Math.max(5,Math.floor(240/sz));
   const c=document.createElement('canvas');c.width=sz*cl;c.height=sz*cl;const ctx=c.getContext('2d');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
   for(let r=0;r<sz;r++)for(let co=0;co<sz;co++)if(qr.isDark(r,co)){ctx.fillStyle=THEMES[currentTheme].cg[1];ctx.fillRect(co*cl,r*cl,cl,cl)}
   const img=document.createElement('img');
   img.src=c.toDataURL('image/png');
-  img.style.width='200px';img.style.height='200px';img.style.borderRadius='8px';
+  img.style.width='240px';img.style.height='240px';img.style.borderRadius='8px';
   el.appendChild(img);
   }catch(e){el.innerHTML='<p style="color:#999;font-size:12px">二维码生成失败（链接过长）</p>'}
 }
@@ -1115,7 +1107,6 @@ function renderHistory(){
     }
     const it=getHistory()[parseInt(el.dataset.idx)];if(!it)return;nameInput.value=it.name;senderInput.value=it.sender;selectedMonth=it.month;selectedDay=it.day;
     birthdayDisplay.textContent=`${String(it.month).padStart(2,'0')}月${String(it.day).padStart(2,'0')}日`;birthdayDisplay.style.color='var(--text)';
-    const luH=solarToLunar(it.month,it.day);$('lunarDisplay').textContent=`农历：${luH.monthCn}${luH.dayCn}`;
     blessingInput.value=it.blessing||'';if(it.theme!==undefined)selectTheme(it.theme);historyPanel.classList.remove('show');window.scrollTo({top:0,behavior:'smooth'});
   })});
 }
@@ -1145,14 +1136,14 @@ function startDisplayMode(){
         return;
       }
       displayData={name:tokenData.name||'',sender:tokenData.sender||'',
-        year:tokenData.year||2000,month:tokenData.month||1,day:tokenData.day||1,
-        lunarMonthCn:tokenData.lunarMonthCn||'',lunarDayCn:tokenData.lunarDayCn||'',
+        month:tokenData.month||1,day:tokenData.day||1,
         themeIdx:tokenData.theme||0,blessing:tokenData.blessing||'生日快乐！',
         images:tokenData.images||[],texts:tokenData.texts||[]
       };
-      // Password gate: require lunar date password
-      if(tokenData.lunarPassword){
-        showPasswordGate(tokenData.lunarPassword);
+      // Password gate: require solar date password
+      const pwd=tokenData.solarPassword||solarPassword(tokenData.month||1,tokenData.day||1);
+      if(pwd){
+        showPasswordGate(pwd);
       }else{
         renderDisplay();
       }
@@ -1162,8 +1153,7 @@ function startDisplayMode(){
   // Legacy URL mode (no token) — no password gate
   displayData={
     name:urlParams.get('name')||'',sender:urlParams.get('sender')||'',
-    year:parseInt(urlParams.get('year'))||2000,month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
-    lunarMonthCn:'',lunarDayCn:'',
+    month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
     themeIdx:parseInt(urlParams.get('theme'))||0,blessing:urlParams.get('blessing')||'生日快乐！',
     images:(function(){
       const raw=urlParams.get('img');if(!raw)return[];
@@ -1263,9 +1253,8 @@ function renderDisplay(){
 
   // Phase 3: Blessing
   const p3=document.createElement('div');p3.className='d-phase';
-  const solarStr=`${displayData.year?displayData.year+'年':''}${displayData.month}月${displayData.day}日`;
-  const lunarStr=displayData.lunarMonthCn&&displayData.lunarDayCn?`${displayData.lunarMonthCn}${displayData.lunarDayCn}`:'';
-  p3.innerHTML=`<div class="d-phase-title">🎂 生日快乐！</div><div class="d-phase-title" style="font-size:clamp(22px,6vw,38px)">致：${displayData.name}</div><div class="d-phase-title" style="font-size:clamp(14px,3.5vw,20px);color:rgba(255,255,255,0.85)">阳历：${solarStr}</div>${lunarStr?`<div class="d-phase-title" style="font-size:clamp(14px,3.5vw,20px);color:rgba(255,255,255,0.75)">阴历：${lunarStr}</div>`:''}<div style="width:60px;height:2px;background:rgba(255,255,255,0.3);margin:16px auto;opacity:0" class="p3-div"></div><div class="d-phase-text">${displayData.blessing}</div><div class="d-phase-text" style="font-size:clamp(13px,3vw,17px);color:rgba(255,255,255,0.6);margin-top:24px">—— 来自 ${displayData.sender} 的祝福</div><div class="d-swipe-hint">↑ 上滑继续 ↑</div>`;
+  const dateStr=`${displayData.month}月${displayData.day}日`;
+  p3.innerHTML=`<div class="d-phase-title">🎂 生日快乐！</div><div class="d-phase-title" style="font-size:clamp(22px,6vw,38px)">致：${displayData.name}</div><div class="d-phase-title" style="font-size:clamp(14px,3.5vw,20px);color:rgba(255,255,255,0.85)">${dateStr}</div><div style="width:60px;height:2px;background:rgba(255,255,255,0.3);margin:16px auto;opacity:0" class="p3-div"></div><div class="d-phase-text">${displayData.blessing}</div><div class="d-phase-text" style="font-size:clamp(13px,3vw,17px);color:rgba(255,255,255,0.6);margin-top:24px">—— 来自 ${displayData.sender} 的祝福</div><div class="d-swipe-hint">↑ 上滑继续 ↑</div>`;
   scroll.appendChild(p3);phases.push(p3);
 
   // Image phases - card style
@@ -1434,11 +1423,10 @@ else{
     }
   }
   initThemes();selectTheme(0);
-  const today=new Date();selectedYear=today.getFullYear();selectedMonth=today.getMonth()+1;selectedDay=today.getDate();
-  pickerYear=selectedYear;pickerMonth=selectedMonth;pickerDay=selectedDay;
-  birthdayDisplay.textContent=`${selectedYear}-${String(selectedMonth).padStart(2,'0')}-${String(selectedDay).padStart(2,'0')}`;
+  const today=new Date();selectedMonth=today.getMonth()+1;selectedDay=today.getDate();
+  pickerMonth=selectedMonth;pickerDay=selectedDay;
+  birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
   birthdayDisplay.style.color='var(--text)';
-  const lu0=solarToLunar(selectedYear,selectedMonth,selectedDay);$('lunarDisplay').textContent=`农历：${lu0.monthCn}${lu0.dayCn}`;
   renderImgGrid();
 }
 
