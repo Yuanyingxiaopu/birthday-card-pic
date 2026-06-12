@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/solarlunar@2.0.7/dist/solarlunar.min.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -399,7 +400,7 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
   <div class="picker-panel">
     <div class="picker-header">
       <button class="picker-cancel" id="pickerCancel">取消</button>
-      <h3>选择生日（月 / 日）</h3>
+      <h3>选择农历生日</h3>
       <button class="picker-confirm" id="pickerConfirm">确定</button>
     </div>
     <div class="picker-body">
@@ -481,6 +482,21 @@ const urlParams=new URLSearchParams(location.search);
 const tokenParam=urlParams.get('token'); // token=xxx → editor mode (authorization)
 const cardParam=urlParams.get('card');   // card=xxx → display mode (view card)
 const isDisplayMode=!!cardParam||(urlParams.has('name')&&urlParams.has('sender'));
+
+/* ========== LUNAR HELPERS ========== */
+const LUNAR_MONTH_CN=['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','腊月'];
+const LUNAR_DAY_CN=['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+  '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+  '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+function lunarDateText(m,d){return LUNAR_MONTH_CN[m-1]+LUNAR_DAY_CN[d-1]}
+function todayLunar(){
+  const now=new Date();
+  if(typeof solarLunar!=='undefined'){
+    const r=solarLunar.solar2lunar(now.getFullYear(),now.getMonth()+1,now.getDate());
+    if(r!==-1)return{month:r.lMonth,day:r.lDay};
+  }
+  return{month:now.getMonth()+1,day:now.getDate()};
+}
 
 /* ========== TOKEN SYSTEM (Cloud + Local) ========== */
 const CLOUD_API='https://jsonblob.com/api/jsonBlob';
@@ -579,11 +595,11 @@ function buildPicker(){
   monthColumn.innerHTML='';dayColumn.innerHTML='';
   const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
   monthColumn.appendChild(mk());
-  for(let m=1;m<=12;m++){const d=document.createElement('div');d.className='picker-item';d.textContent=String(m).padStart(2,'0');d.dataset.val=m;monthColumn.appendChild(d)}
+  for(let m=1;m<=12;m++){const d=document.createElement('div');d.className='picker-item';d.textContent=LUNAR_MONTH_CN[m-1];d.dataset.val=m;monthColumn.appendChild(d)}
   monthColumn.appendChild(mk());
   dayColumn.appendChild(mk());
   const dim=getDaysInMonth(pickerMonth);
-  for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
+  for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=LUNAR_DAY_CN[d-1];e.dataset.val=d;dayColumn.appendChild(e)}
   dayColumn.appendChild(mk());
 }
 function scrollPicker(col,val){
@@ -606,7 +622,7 @@ function onPickerScroll(col,type){
       pickerMonth=val;const oldDay=pickerDay;dayColumn.innerHTML='';
       const mk=()=>{const d=document.createElement('div');d.className='picker-padding';return d};
       dayColumn.appendChild(mk());const dim=getDaysInMonth(val);
-      for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=String(d).padStart(2,'0');e.dataset.val=d;dayColumn.appendChild(e)}
+      for(let d=1;d<=dim;d++){const e=document.createElement('div');e.className='picker-item';e.textContent=LUNAR_DAY_CN[d-1];e.dataset.val=d;dayColumn.appendChild(e)}
       dayColumn.appendChild(mk());pickerDay=Math.min(oldDay,dim);scrollPicker(dayColumn,pickerDay);
     }else{pickerDay=val}highlightPicker();
   },80);
@@ -626,7 +642,7 @@ birthdayTrigger.addEventListener('click',openPicker);
 $('pickerCancel').addEventListener('click',closePicker);
 $('pickerConfirm').addEventListener('click',()=>{
   selectedMonth=pickerMonth;selectedDay=pickerDay;
-  birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
+  birthdayDisplay.textContent=lunarDateText(selectedMonth,selectedDay);
   birthdayDisplay.style.color='var(--text)';
   closePicker();
 });
@@ -1068,7 +1084,7 @@ function renderHistory(){
       return;
     }
     const it=getHistory()[parseInt(el.dataset.idx)];if(!it)return;nameInput.value=it.name;senderInput.value=it.sender;selectedMonth=it.month;selectedDay=it.day;
-    birthdayDisplay.textContent=`${String(it.month).padStart(2,'0')}月${String(it.day).padStart(2,'0')}日`;birthdayDisplay.style.color='var(--text)';
+    birthdayDisplay.textContent=lunarDateText(it.month,it.day);birthdayDisplay.style.color='var(--text)';
     blessingInput.value=it.blessing||'';if(it.theme!==undefined)selectTheme(it.theme);historyPanel.classList.remove('show');window.scrollTo({top:0,behavior:'smooth'});
   })});
 }
@@ -1383,9 +1399,9 @@ else{
     }
   }
   initThemes();selectTheme(0);
-  const today=new Date();selectedMonth=today.getMonth()+1;selectedDay=today.getDate();
+  const tl=todayLunar();selectedMonth=tl.month;selectedDay=tl.day;
   pickerMonth=selectedMonth;pickerDay=selectedDay;
-  birthdayDisplay.textContent=`${String(selectedMonth).padStart(2,'0')}月${String(selectedDay).padStart(2,'0')}日`;
+  birthdayDisplay.textContent=lunarDateText(selectedMonth,selectedDay);
   birthdayDisplay.style.color='var(--text)';
   renderImgGrid();
 }
