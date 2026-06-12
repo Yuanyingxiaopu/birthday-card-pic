@@ -361,7 +361,7 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
     <button class="submit-btn" id="generateBtn" style="margin-top:18px">✨ 立即生成 ✨</button>
 
     <div class="result-section" id="resultSection">
-      <p class="result-tip">🎉 请保存 贺卡图片（长按可保存）和 链接，用于分享和预览！</p>
+      <p class="result-tip">🎉 贺卡已生成！已生成授权链接，请保存图片和链接用于分享！</p>
       <div class="result-card" id="resultCard">
         <canvas id="cardCanvas" width="600" height="1200"></canvas>
       </div>
@@ -410,11 +410,11 @@ html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg)
   </div>
 </div>
 
-<button class="history-btn" id="historyBtn">📋</button>
+<button class="history-btn" id="historyBtn">🔑</button>
 <div class="history-panel" id="historyPanel">
   <div class="history-content">
-    <h3>📌 我的制作</h3>
-    <div class="sub">已生成的祝福卡记录，可快速重新打开</div>
+    <h3>🔑 我的贺卡</h3>
+    <div class="sub">已生成的贺卡授权记录 · 点击🔗复制分享链接</div>
     <div id="historyList"></div>
     <button class="history-close" id="historyClose">取消</button>
   </div>
@@ -478,7 +478,49 @@ const imgGrid=$('imgGrid'),imgUploadZone=$('imgUploadZone'),imgFileInput=$('imgF
 const imgDragTip=$('imgDragTip');
 
 const urlParams=new URLSearchParams(location.search);
-const isDisplayMode=urlParams.has('name')&&urlParams.has('sender');
+const isDisplayMode=urlParams.has('token')||(urlParams.has('name')&&urlParams.has('sender'));
+
+/* ========== TOKEN SYSTEM ========== */
+function generateToken(){
+  const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const seg=()=>Array.from({length:8},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+  return seg()+'-'+seg()+'-'+seg();
+}
+function saveCardData(token,data){
+  try{
+    const store=getCardStore();
+    store[token]={...data,createdAt:Date.now()};
+    localStorage.setItem('bd_cards',JSON.stringify(store));
+    return true;
+  }catch(e){
+    // localStorage full, try cleanup
+    cleanupOldCards();
+    try{
+      const store=getCardStore();
+      store[token]={...data,createdAt:Date.now()};
+      localStorage.setItem('bd_cards',JSON.stringify(store));
+      return true;
+    }catch(e2){console.warn('Storage full:',e2);return false}
+  }
+}
+function getCardData(token){
+  const store=getCardStore();
+  return store[token]||null;
+}
+function getCardStore(){
+  try{return JSON.parse(localStorage.getItem('bd_cards')||'{}')}catch{return{}}
+}
+function deleteCardData(token){
+  const store=getCardStore();delete store[token];
+  localStorage.setItem('bd_cards',JSON.stringify(store));
+}
+function cleanupOldCards(){
+  const store=getCardStore();
+  const entries=Object.entries(store).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
+  // Remove oldest 3 entries
+  for(let i=0;i<3&&i<entries.length;i++)delete store[entries[i][0]];
+  localStorage.setItem('bd_cards',JSON.stringify(store));
+}
 
 function initThemes(){
   THEMES.forEach((t,i)=>{
@@ -768,31 +810,25 @@ $('useDefaultText').addEventListener('change',function(){
 
 /* ========== CARD GENERATION ========== */
 
+let currentToken='';
 function buildShareURL(){
-  const n=encodeURIComponent(nameInput.value.trim()),s=encodeURIComponent(senderInput.value.trim()),b=encodeURIComponent(blessingInput.value.trim());
-  let url=`${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
-  if(thumbnailData.length>0){
-    const payload=thumbnailData.join('|');
-    const compressed=typeof LZString!=='undefined'?LZString.compressToEncodedURIComponent(payload):encodeURIComponent(payload);
-    url+=`&img=${compressed}`;
+  if(currentToken){
+    return `${location.origin}${location.pathname}?token=${currentToken}`;
   }
-  if(shareTexts.length>0){
-    const payload=JSON.stringify(shareTexts);
-    const compressed=typeof LZString!=='undefined'?LZString.compressToEncodedURIComponent(payload):encodeURIComponent(payload);
-    url+=`&txt=${compressed}`;
-  }
-  return url;
-}
-function buildShortURL(){
+  // Fallback: legacy URL mode
   const n=encodeURIComponent(nameInput.value.trim()),s=encodeURIComponent(senderInput.value.trim()),b=encodeURIComponent(blessingInput.value.trim());
   return `${location.origin}${location.pathname}?name=${n}&sender=${s}&month=${selectedMonth}&day=${selectedDay}&theme=${currentTheme}&blessing=${b}`;
 }
+function buildShortURL(){return buildShareURL()}
 
 function generateCard(){
   const name=nameInput.value.trim(),sender=senderInput.value.trim();
   if(!name){showToast('请输入寿星昵称');nameInput.focus();return}
   if(!sender){showToast('请输入发送人昵称');senderInput.focus();return}
   if(!uploadedImages.length){showToast('请至少上传或选择一张图片');return}
+
+  // Generate a new token for this card
+  currentToken=generateToken();
 
   const t=THEMES[currentTheme],blessing=blessingInput.value.trim()||BLESSINGS[blessingIndex%BLESSINGS.length];
   const useDefault=$('useDefaultText').checked;
@@ -889,8 +925,18 @@ function generateCard(){
       ctx.font='12px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';
       ctx.fillText('Happy Everyday · 扫码打开给Ta惊喜 🎉',W/2,H-25);
       resultSection.classList.add('show');resultSection.scrollIntoView({behavior:'smooth',block:'start'});
-      generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme);
-      if(shareURL.length>80000){showToast('⚠️ 链接较长，建议优先分享二维码',3000)}
+      generateQRCode(shareURL);saveHistory(name,sender,selectedMonth,selectedDay,blessing,currentTheme,currentToken);
+      // Save card data with token to localStorage
+      const saved=saveCardData(currentToken,{
+        name,sender,month:selectedMonth,day:selectedDay,
+        theme:currentTheme,blessing,
+        images:uploadedImages,texts:shareTexts,
+        token:currentToken
+      });
+      if(!saved){
+        showToast('⚠️ 存储空间不足，链接将使用传统模式',3000);
+        currentToken='';
+      }
     }
 
     uploadedImages.forEach((src,i)=>{
@@ -913,9 +959,7 @@ function generateCard(){
 
 function drawQRCodeOnCanvas(ctx,url,W,H,t,qrY){
   try{
-    // QR code has data limits, use short URL (without images) for QR
-    const shortUrl=url.length>2000?buildShortURL():url;
-    const qr=qrcode(0,'L');qr.addData(shortUrl);qr.make();const sz=qr.getModuleCount(),cs=Math.floor(100/sz),qs=sz*cs,cx=W/2,cy=qrY+70;
+    const qr=qrcode(0,'L');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cs=Math.floor(100/sz),qs=sz*cs,cx=W/2,cy=qrY+70;
   ctx.fillStyle='rgba(255,255,255,0.9)';roundRect(ctx,cx-qs/2-12,cy-qs/2-12,qs+24,qs+24,10);ctx.fill();
   for(let r=0;r<sz;r++)for(let c=0;c<sz;c++)if(qr.isDark(r,c)){ctx.fillStyle=t.cg[2];ctx.fillRect(cx-qs/2+c*cs,cy-qs/2+r*cs,cs,cs)}
   }catch(e){console.warn('QR generation failed:',e)}
@@ -923,8 +967,7 @@ function drawQRCodeOnCanvas(ctx,url,W,H,t,qrY){
 function generateQRCode(url){
   const el=$('qrcodeEl');el.innerHTML='';
   try{
-    const shortUrl=url.length>2000?buildShortURL():url;
-    const qr=qrcode(0,'M');qr.addData(shortUrl);qr.make();const sz=qr.getModuleCount(),cl=Math.max(4,Math.floor(200/sz));
+    const qr=qrcode(0,'M');qr.addData(url);qr.make();const sz=qr.getModuleCount(),cl=Math.max(4,Math.floor(200/sz));
   const c=document.createElement('canvas');c.width=sz*cl;c.height=sz*cl;const ctx=c.getContext('2d');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
   for(let r=0;r<sz;r++)for(let co=0;co<sz;co++)if(qr.isDark(r,co)){ctx.fillStyle=THEMES[currentTheme].cg[1];ctx.fillRect(co*cl,r*cl,cl,cl)}
@@ -951,15 +994,43 @@ copyBtn.addEventListener('click',()=>{
 });
 
 function getHistory(){try{return JSON.parse(localStorage.getItem('bd_pic_history')||'[]')}catch{return[]}}
-function saveHistory(name,sender,month,day,blessing,theme){
-  const l=getHistory();l.unshift({name,sender,month,day,blessing,theme,pic:true,time:Date.now()});
-  if(l.length>20)l.length=20;localStorage.setItem('bd_pic_history',JSON.stringify(l));
+function saveHistory(name,sender,month,day,blessing,theme,token){
+  const l=getHistory();
+  const existing=l.findIndex(it=>it.token===token);
+  const entry={name,sender,month,day,blessing,theme,token:token||'',pic:true,time:Date.now()};
+  if(existing>=0){l[existing]=entry}else{l.unshift(entry)}
+  if(l.length>30)l.length=30;localStorage.setItem('bd_pic_history',JSON.stringify(l));
 }
 function renderHistory(){
-  const l=getHistory();if(!l.length){historyList.innerHTML='<div class="history-empty">暂无记录</div>';return}
-  historyList.innerHTML=l.map((it,i)=>`<div class="history-item" data-idx="${i}"><div class="info"><div class="name">📸 ${it.name}</div><div class="date">${it.month}月${it.day}日 · 来自 ${it.sender}</div></div><button class="del-btn" data-delidx="${i}">✕</button></div>`).join('');
+  const l=getHistory();if(!l.length){historyList.innerHTML='<div class="history-empty">暂无记录，快去生成你的第一张贺卡吧！</div>';return}
+  historyList.innerHTML=l.map((it,i)=>{
+    const tokenUrl=it.token?`${location.origin}${location.pathname}?token=${it.token}`:'';
+    return `<div class="history-item" data-idx="${i}">
+      <div class="info">
+        <div class="name">📸 ${it.name}</div>
+        <div class="date">${it.month}月${it.day}日 · 来自 ${it.sender}${it.token?' · 🔑 已授权':''}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${tokenUrl?`<button class="copy-token-btn" data-url="${tokenUrl}" title="复制链接" style="width:32px;height:32px;border:none;background:none;color:var(--theme-color);font-size:14px;cursor:pointer;border-radius:50%">🔗</button>`:''}
+        <button class="del-btn" data-delidx="${i}">✕</button>
+      </div>
+    </div>`;
+  }).join('');
   historyList.querySelectorAll('.history-item').forEach(el=>{el.addEventListener('click',e=>{
-    if(e.target.classList.contains('del-btn')){e.stopPropagation();const i=parseInt(e.target.dataset.delidx);const l=getHistory();l.splice(i,1);localStorage.setItem('bd_pic_history',JSON.stringify(l));renderHistory();return}
+    if(e.target.classList.contains('del-btn')){
+      e.stopPropagation();const i=parseInt(e.target.dataset.delidx);const l=getHistory();
+      const item=l[i];if(item&&item.token)deleteCardData(item.token);
+      l.splice(i,1);localStorage.setItem('bd_pic_history',JSON.stringify(l));renderHistory();return;
+    }
+    if(e.target.classList.contains('copy-token-btn')){
+      e.stopPropagation();
+      const url=e.target.dataset.url;
+      navigator.clipboard.writeText(url).then(()=>showToast('🔗 链接已复制')).catch(()=>{
+        const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();
+        document.execCommand('copy');document.body.removeChild(ta);showToast('🔗 链接已复制');
+      });
+      return;
+    }
     const it=getHistory()[parseInt(el.dataset.idx)];if(!it)return;nameInput.value=it.name;senderInput.value=it.sender;selectedMonth=it.month;selectedDay=it.day;
     birthdayDisplay.textContent=`${String(it.month).padStart(2,'0')}月${String(it.day).padStart(2,'0')}日`;birthdayDisplay.style.color='var(--text)';
     blessingInput.value=it.blessing||'';if(it.theme!==undefined)selectTheme(it.theme);historyPanel.classList.remove('show');window.scrollTo({top:0,behavior:'smooth'});
@@ -977,7 +1048,25 @@ let displayAnim=null,audioCtx=null,musicPlaying=false;
 let displayData={};
 
 function startDisplayMode(){
-  displayData={
+  // Try token-based data first
+  const tokenParam=urlParams.get('token');
+  let tokenData=null;
+  if(tokenParam){
+    tokenData=getCardData(tokenParam);
+    if(!tokenData){
+      // Token not found in this browser — show error
+      document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#ff6b9d,#ff8fab);color:#fff;font-family:sans-serif;text-align:center;padding:40px"><div><div style="font-size:64px;margin-bottom:20px">😢</div><h2 style="font-size:24px;margin-bottom:12px">链接已过期或无效</h2><p style="opacity:0.8;font-size:14px">请在创建贺卡的设备上打开此链接<br>或重新生成一张贺卡</p></div></div>';
+      return;
+    }
+  }
+
+  displayData=tokenData?{
+    name:tokenData.name||'',sender:tokenData.sender||'',
+    month:tokenData.month||1,day:tokenData.day||1,
+    themeIdx:tokenData.theme||0,blessing:tokenData.blessing||'生日快乐！',
+    images:tokenData.images||[],
+    texts:tokenData.texts||[]
+  }:{
     name:urlParams.get('name')||'',sender:urlParams.get('sender')||'',
     month:parseInt(urlParams.get('month'))||1,day:parseInt(urlParams.get('day'))||1,
     themeIdx:parseInt(urlParams.get('theme'))||0,blessing:urlParams.get('blessing')||'生日快乐！',
